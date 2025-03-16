@@ -1,0 +1,693 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+  <title>Ананас Кликер</title>
+  <style>
+    /* Базовые стили страницы */
+    body {
+      margin: 0;
+      padding: 0;
+      overflow: hidden;
+      height: 100vh;
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      background: #000;
+      font-family: 'Arial', sans-serif;
+    }
+    .container {
+      width: 100vw;
+      height: 100vh;
+      padding: 20px;
+      background-image: url('assets/Fon.png');
+      background-size: cover;
+      background-position: center;
+      background-repeat: no-repeat;
+      background-attachment: fixed;
+      display: flex;
+      flex-direction: column;
+      justify-content: center; /* Центрируем содержимое по вертикали */
+      align-items: center;
+      position: relative;
+    }
+    html {
+      touch-action: manipulation;
+    }
+    .counter {
+      font-size: 30px;
+      color: white;
+      font-weight: bold;
+      margin-bottom: 20px; /* отступ между счётчиком и ананасом */
+      display: flex;
+      align-items: center;
+    }
+    .coin-icon {
+      width: 30px;
+      height: 30px;
+      margin-right: 5px;
+      vertical-align: middle;
+    }
+    .clickable {
+      width: 250px;
+      cursor: pointer;
+      transition: transform 0.3s ease;
+    }
+    .clickable:hover {
+      transform: scale(1.1);
+    }
+    /* Футер с кнопками – позиционируем его внизу */
+    .footer {
+      position: absolute;
+      bottom: 20px;
+      left: 50%;
+      transform: translateX(-50%);
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      gap: 10px;
+    }
+    /* Кнопки в футере */
+    .bottom-buttons {
+      display: flex;
+      gap: 20px;
+    }
+    .bottom-buttons button,
+    .daily-button {
+      padding: 15px 25px;
+      font-size: 18px;
+      border: none;
+      border-radius: 8px;
+      cursor: pointer;
+      background-color: #4CAF50;
+      color: white;
+      transition: background-color 0.3s ease;
+    }
+    .bottom-buttons button:hover,
+    .daily-button:hover {
+      background-color: #45a049;
+    }
+    .daily-button {
+      background-color: #FFA500;
+    }
+    .daily-button:hover {
+      background-color: #FF8C00;
+    }
+    /* Кнопка "Об авторе" в правом верхнем углу */
+    .top-button {
+      position: absolute;
+      top: 10px;
+      right: 10px;
+      padding: 10px 15px;
+      font-size: 14px;
+      border: none;
+      border-radius: 5px;
+      cursor: pointer;
+      background-color: #2196F3;
+      color: white;
+      transition: background-color 0.3s ease;
+    }
+    .top-button:hover {
+      background-color: #1976D2;
+    }
+    /* Кнопка настроек в левом верхнем углу */
+    .left-button {
+      position: absolute;
+      top: 10px;
+      left: 10px;
+      padding: 10px 15px;
+      font-size: 14px;
+      border: none;
+      border-radius: 5px;
+      cursor: pointer;
+      background-color: #2196F3;
+      color: white;
+      transition: background-color 0.3s ease;
+    }
+    .left-button:hover {
+      background-color: #1976D2;
+    }
+    /* Стили модальных окон */
+    .modal {
+      display: none;
+      position: fixed;
+      top: 50%;
+      left: 50%;
+      transform: translate(-50%, -50%);
+      background: white;
+      padding: 20px;
+      border-radius: 10px;
+      box-shadow: 0 0 10px rgba(0,0,0,0.3);
+      z-index: 100;
+      text-align: center;
+      width: 80%;
+      max-width: 400px;
+    }
+    .modal button {
+      margin-top: 15px;
+      padding: 10px 20px;
+      font-size: 16px;
+      border: none;
+      border-radius: 5px;
+      background: #4CAF50;
+      color: #fff;
+      cursor: pointer;
+    }
+    .modal button:hover {
+      background: #45a049;
+    }
+    .mini-pineapple {
+      position: absolute;
+      width: 40px;
+      height: 40px;
+      transition: transform 1s ease-out, opacity 1s ease-out;
+      pointer-events: none;
+    }
+    /* Классы для изображений скинов */
+    .locked-skin {
+      width: 100px;
+      height: 66px;
+    }
+    .unlocked-skin {
+      width: 150px;
+      height: 100px;
+    }
+    /* Стили для ежедневных заданий */
+    #dailyTaskModal {
+      background: rgba(255, 255, 255, 0.95);
+      border-radius: 20px;
+      padding: 20px;
+    }
+    .daily-task {
+      background: #f0f0f0;
+      border-radius: 20px;
+      padding: 15px;
+      margin: 10px 0;
+      box-shadow: 0 2px 5px rgba(0,0,0,0.2);
+      text-align: center;
+    }
+    .daily-task h4 {
+      margin: 5px 0;
+      font-size: 18px;
+      color: #333;
+    }
+    .daily-task p {
+      margin: 5px 0;
+      font-size: 16px;
+      color: #666;
+    }
+    .daily-task button {
+      margin-top: 10px;
+      padding: 8px 16px;
+      font-size: 16px;
+      border: none;
+      border-radius: 20px;
+      background: linear-gradient(45deg, #FFA500, #FF8C00);
+      color: white;
+      cursor: pointer;
+      transition: background 0.3s ease;
+    }
+    .daily-task button:hover {
+      background: linear-gradient(45deg, #FF8C00, #FFA500);
+    }
+  </style>
+</head>
+<body>
+  <div class="container" id="gameContainer">
+    <!-- Верхние кнопки -->
+    <button class="left-button" onclick="openSettingsModal()">Настройки</button>
+    <button class="top-button" onclick="showCreatorInfo()">Об авторе</button>
+    
+    <!-- Основной контент: счётчик и ананас -->
+    <div class="counter">
+      <img src="assets/Сoin.png" alt="Монета" class="coin-icon">
+      <span id="coins">0</span>
+    </div>
+    <img src="assets/PineApple.png" class="clickable" id="pineapple" alt="Ананас">
+    
+    <!-- Футер с кнопками -->
+    <div class="footer">
+      <div class="bottom-buttons">
+        <button onclick="openShopMenu()">Магазин</button>
+        <button onclick="openUpgradeMenu()">Улучшения</button>
+      </div>
+      <button class="daily-button" onclick="openDailyTaskMenu()">Ежедневные задания</button>
+    </div>
+  </div>
+
+  <!-- Модальные окна -->
+  <div class="modal" id="shopModal">
+    <h3>Магазин</h3>
+    <div style="margin-bottom: 15px;">
+      <button onclick="openBackgroundMenu()">Фоны</button>
+      <button onclick="openSkinMenu()">Скины</button>
+    </div>
+    <button onclick="closeShopMenu()">Закрыть магазин</button>
+  </div>
+
+  <div class="modal" id="upgradeModal">
+    <h3>Улучшения</h3>
+    <div style="margin-bottom: 15px;">
+      <button id="passiveUpgradeBtn" onclick="buyPassiveUpgrade()">Улучшить пассивный доход</button>
+      <button id="clickUpgradeBtn" onclick="buyClickUpgrade()">Улучшить клик</button>
+    </div>
+    <button onclick="closeUpgradeMenu()">Закрыть улучшения</button>
+  </div>
+
+  <div class="modal" id="backgroundMenu">
+    <h3>Выберите фон</h3>
+    <div id="backgroundList"></div>
+    <button onclick="closeBackgroundMenu()">Закрыть</button>
+  </div>
+
+  <div class="modal" id="skinMenu">
+    <h3>Выберите скин для ананаса</h3>
+    <div id="skinList"></div>
+    <button onclick="closeSkinMenu()">Закрыть</button>
+  </div>
+
+  <div class="modal" id="settingsModal">
+    <h3>Настройки музыки</h3>
+    <p id="musicStatusText">Музыка включена</p>
+    <button onclick="toggleMusic()" id="toggleMusicBtn">Выключить музыку</button>
+    <div style="margin-top: 15px;">
+      <label for="volumeSlider">Громкость: <span id="volumeValue">100%</span></label>
+      <input type="range" id="volumeSlider" min="0" max="100" value="100">
+    </div>
+    <button onclick="closeSettingsModal()">Закрыть настройки</button>
+  </div>
+
+  <div class="modal" id="messageModal">
+    <p id="messageText"></p>
+    <button onclick="closeMessage()">Закрыть</button>
+  </div>
+
+  <div class="modal" id="dailyTaskModal"></div>
+
+  <!-- Фоновая музыка -->
+  <audio id="bgMusic" loop autoplay muted>
+    <source src="assets/music.mp3" type="audio/mpeg">
+  </audio>
+
+  <script>
+    // Основные переменные игры
+    let coins = parseInt(localStorage.getItem("coins")) || 0;
+    let baseClickValue = 1;
+    let passiveLevel = parseInt(localStorage.getItem("passiveLevel")) || 0;
+    let clickUpgradeLevel = parseInt(localStorage.getItem("clickUpgradeLevel")) || 0;
+    let clickValue = baseClickValue + clickUpgradeLevel;
+    
+    let ownedBackgrounds = JSON.parse(localStorage.getItem("ownedBackgrounds")) || ["assets/Fon.png"];
+    let selectedBackground = localStorage.getItem("selectedBackground") || "assets/Fon.png";
+        
+    let ownedSkins = JSON.parse(localStorage.getItem("ownedSkins")) || ["assets/PineApple.png"];
+    let selectedSkin = localStorage.getItem("selectedSkin") || "assets/PineApple.png";
+
+    document.getElementById("coins").textContent = coins;
+
+    // Музыкальные настройки
+    let musicEnabled = localStorage.getItem("musicEnabled");
+    if (musicEnabled === null) {
+      musicEnabled = true;
+      localStorage.setItem("musicEnabled", "true");
+    } else {
+      musicEnabled = (musicEnabled === "true");
+    }
+    const bgMusic = document.getElementById("bgMusic");
+
+    let musicVolume = localStorage.getItem("musicVolume");
+    if (musicVolume === null) {
+      musicVolume = 1;
+      localStorage.setItem("musicVolume", musicVolume);
+    } else {
+      musicVolume = parseFloat(musicVolume);
+    }
+    bgMusic.volume = musicVolume;
+    if (musicEnabled) {
+      bgMusic.play().catch(() => {});
+    } else {
+      bgMusic.pause();
+    }
+    document.body.addEventListener('click', function() {
+      if (bgMusic.muted) {
+        bgMusic.muted = false;
+        if (musicEnabled) {
+          bgMusic.play();
+        }
+      }
+    }, { once: true });
+
+    // --- Ежедневные задания ---
+    function resetDailyTasksIfNeeded() {
+      let today = new Date().toISOString().slice(0, 10);
+      let lastReset = localStorage.getItem("lastDailyReset");
+      if (lastReset !== today) {
+        let dailyTasks = [
+          { id: "clicks", description: "Накликать 1000 раз", required: 1000, reward: 5000, progress: 0, claimed: false },
+          { id: "playTime", description: "Поиграть 10 минут", required: 600, reward: 3000, progress: 0, claimed: false }
+        ];
+        localStorage.setItem("dailyTasks", JSON.stringify(dailyTasks));
+        localStorage.setItem("lastDailyReset", today);
+      }
+    }
+    function getDailyTasks() {
+      resetDailyTasksIfNeeded();
+      return JSON.parse(localStorage.getItem("dailyTasks"));
+    }
+    function updateDailyTask(taskId, increment) {
+      let tasks = getDailyTasks();
+      tasks.forEach(task => {
+        if (task.id === taskId) {
+          task.progress += increment;
+          if (task.progress > task.required) task.progress = task.required;
+        }
+      });
+      localStorage.setItem("dailyTasks", JSON.stringify(tasks));
+    }
+    function claimDailyTaskReward(taskId) {
+      let tasks = getDailyTasks();
+      tasks.forEach(task => {
+        if (task.id === taskId && !task.claimed && task.progress >= task.required) {
+          coins += task.reward;
+          task.claimed = true;
+          updateCoins();
+          showMessage(`Награда ${task.reward} монет получена за задание "${task.description}"!`);
+        }
+      });
+      localStorage.setItem("dailyTasks", JSON.stringify(tasks));
+    }
+    function openDailyTaskMenu() {
+      let tasks = getDailyTasks();
+      let html = "<h3>Ежедневные задания</h3>";
+      tasks.forEach(task => {
+        html += `<div class="daily-task">
+          <h4>${task.description}</h4>
+          <p>Прогресс: ${task.progress} / ${task.required}</p>`;
+        if (!task.claimed && task.progress >= task.required) {
+          html += `<button onclick="claimDailyTaskReward('${task.id}')">Получить награду</button>`;
+        } else if(task.claimed) {
+          html += `<p>Награда получена</p>`;
+        }
+        html += `</div>`;
+      });
+      html += `<button onclick="closeDailyTaskMenu()">Закрыть</button>`;
+      document.getElementById("dailyTaskModal").innerHTML = html;
+      document.getElementById("dailyTaskModal").style.display = "block";
+    }
+    function closeDailyTaskMenu() {
+      document.getElementById("dailyTaskModal").style.display = "none";
+    }
+    // --- Конец ежедневных заданий ---
+
+    // Обработка клика по ананасу
+    document.getElementById("pineapple").addEventListener("click", function(event) {
+      coins += clickValue;
+      updateCoins();
+      updateDailyTask("clicks", 1);
+      this.style.transition = "transform 0.2s ease";
+      this.style.transform = "scale(1.2) rotate(10deg)";
+      setTimeout(() => {
+        this.style.transform = "scale(1) rotate(0deg)";
+      }, 200);
+      createPineappleExplosion(event.clientX, event.clientY);
+    });
+    function updateCoins() {
+      document.getElementById("coins").textContent = Math.floor(coins);
+      localStorage.setItem("coins", coins);
+    }
+    function createPineappleExplosion(x, y) {
+      for (let i = 0; i < 10; i++) {
+        let miniPineapple = document.createElement("img");
+        miniPineapple.src = "assets/PineApple.png"; 
+        miniPineapple.classList.add("mini-pineapple");
+        document.body.appendChild(miniPineapple);
+        let angle = Math.random() * Math.PI * 2;
+        let distance = Math.random() * 100 + 50;
+        let targetX = x + Math.cos(angle) * distance;
+        let targetY = y + Math.sin(angle) * distance;
+        miniPineapple.style.left = `${x}px`;
+        miniPineapple.style.top = `${y}px`;
+        setTimeout(() => {
+          miniPineapple.style.transform = `translate(${targetX - x}px, ${targetY - y}px) scale(0.5)`;
+          miniPineapple.style.opacity = "0";
+        }, 10);
+        setTimeout(() => {
+          miniPineapple.remove();
+        }, 1000);
+      }
+    }
+    setInterval(() => {
+      updateDailyTask("playTime", 1);
+    }, 1000);
+
+    // Функции модальных окон магазина и улучшений
+    function openShopMenu() {
+      document.getElementById("shopModal").style.display = "block";
+    }
+    function closeShopMenu() {
+      document.getElementById("shopModal").style.display = "none";
+    }
+    function openUpgradeMenu() {
+      document.getElementById("upgradeModal").style.display = "block";
+    }
+    function closeUpgradeMenu() {
+      document.getElementById("upgradeModal").style.display = "none";
+    }
+    // Функции для работы с фонами
+    function openBackgroundMenu() {
+      closeShopMenu();
+      let menu = document.getElementById("backgroundList");
+      menu.innerHTML = "";
+      let backgrounds = [
+        { price: 100000, path: "assets/FonShop1.png" },
+        { price: 1000000, path: "assets/FonShop2.png" },
+        { price: 10000000, path: "assets/FonShop3.png" }
+      ];
+      backgrounds.forEach(bg => {
+        let bgCard = document.createElement("div");
+        bgCard.style.display = "flex";
+        bgCard.style.flexDirection = "column";
+        bgCard.style.alignItems = "center";
+        bgCard.style.marginBottom = "10px";
+        let img = document.createElement("img");
+        img.src = bg.path;
+        img.style.width = "150px";
+        img.style.height = "100px";
+        img.style.borderRadius = "10px";
+        img.style.objectFit = "cover";
+        img.style.marginBottom = "5px";
+        let button = document.createElement("button");
+        if (ownedBackgrounds.includes(bg.path)) {
+          button.textContent = (selectedBackground === bg.path ? "Выбран" : "Выбрать");
+        } else {
+          button.innerHTML = `Купить за ${bg.price} <img src="assets/Сoin.png" alt="Монета" style="width:16px; height:16px; vertical-align:middle;">`;
+        }
+        button.onclick = function() {
+          if (!ownedBackgrounds.includes(bg.path)) {
+            buyBackground(bg.price, bg.path);
+          } else {
+            selectBackground(bg.path);
+          }
+        };
+        bgCard.appendChild(img);
+        bgCard.appendChild(button);
+        menu.appendChild(bgCard);
+      });
+      document.getElementById("backgroundMenu").style.display = "block";
+    }
+    function closeBackgroundMenu() {
+      document.getElementById("backgroundMenu").style.display = "none";
+    }
+    function selectBackground(path) {
+      selectedBackground = path;
+      localStorage.setItem("selectedBackground", selectedBackground);
+      document.getElementById("gameContainer").style.backgroundImage = `url('${selectedBackground}')`;
+      closeBackgroundMenu();
+    }
+    function buyBackground(price, path) {
+      if (coins >= price) {
+        coins -= price;
+        ownedBackgrounds.push(path);
+        localStorage.setItem("ownedBackgrounds", JSON.stringify(ownedBackgrounds));
+        updateCoins();
+        openBackgroundMenu();
+      } else {
+        showMessage("Не хватает монет для покупки фона!");
+      }
+    }
+    // Функции для работы со скинами
+    function openSkinMenu() {
+      document.getElementById("shopModal").style.display = "none";
+      let menu = document.getElementById("skinList");
+      menu.innerHTML = "";
+      let skins = [
+        { price: 1000000, path: "assets/Skin1.png", lockedPath: "assets/Skin1_locked.png" },
+        { price: 10000000, path: "assets/Skin2.png", lockedPath: "assets/Skin2_locked.png" },
+        { price: 100000000, path: "assets/Skin3.png", lockedPath: "assets/Skin3_locked.png" }
+      ];
+      skins.forEach(skin => {
+        let skinCard = document.createElement("div");
+        skinCard.style.display = "flex";
+        skinCard.style.flexDirection = "column";
+        skinCard.style.alignItems = "center";
+        skinCard.style.marginBottom = "10px";
+        let img = document.createElement("img");
+        if (ownedSkins.includes(skin.path)) {
+          img.src = skin.path;
+          img.classList.add("unlocked-skin");
+        } else {
+          img.src = skin.lockedPath;
+          img.classList.add("locked-skin");
+        }
+        img.style.borderRadius = "10px";
+        img.style.objectFit = "cover";
+        img.style.marginBottom = "5px";
+        let button = document.createElement("button");
+        if (ownedSkins.includes(skin.path)) {
+          button.textContent = (selectedSkin === skin.path ? "Выбран" : "Выбрать");
+        } else {
+          button.innerHTML = `Купить за ${skin.price} <img src="assets/Сoin.png" alt="Монета" style="width:16px; height:16px; vertical-align:middle;">`;
+        }
+        button.onclick = function() {
+          if (!ownedSkins.includes(skin.path)) {
+            buySkin(skin.price, skin.path);
+          } else {
+            selectSkin(skin.path);
+          }
+        };
+        skinCard.appendChild(img);
+        skinCard.appendChild(button);
+        menu.appendChild(skinCard);
+      });
+      document.getElementById("skinMenu").style.display = "block";
+    }
+    function closeSkinMenu() {
+      document.getElementById("skinMenu").style.display = "none";
+    }
+    function selectSkin(path) {
+      selectedSkin = path;
+      localStorage.setItem("selectedSkin", selectedSkin);
+      document.getElementById("pineapple").src = selectedSkin;
+      closeSkinMenu();
+    }
+    function buySkin(price, path) {
+      if (coins >= price) {
+        coins -= price;
+        ownedSkins.push(path);
+        localStorage.setItem("ownedSkins", JSON.stringify(ownedSkins));
+        updateCoins();
+        openSkinMenu();
+      } else {
+        showMessage("Не хватает монет для покупки скина!");
+      }
+    }
+    // Функции для улучшений
+    function buyPassiveUpgrade() {
+      let cost = 50 * (passiveLevel + 1);
+      if (coins >= cost) {
+        coins -= cost;
+        passiveLevel++;
+        localStorage.setItem("passiveLevel", passiveLevel);
+        updateCoins();
+        updateUpgradeButtons();
+      } else {
+        showMessage("Не хватает монет для улучшения пассивного дохода!");
+      }
+    }
+    function buyClickUpgrade() {
+      let cost = 50 * (clickUpgradeLevel + 1);
+      if (coins >= cost) {
+        coins -= cost;
+        clickUpgradeLevel++;
+        clickValue = baseClickValue + clickUpgradeLevel;
+        localStorage.setItem("clickUpgradeLevel", clickUpgradeLevel);
+        updateCoins();
+        updateUpgradeButtons();
+      } else {
+        showMessage("Не хватает монет для улучшения клика!");
+      }
+    }
+    function updateUpgradeButtons() {
+      let passiveBtn = document.getElementById("passiveUpgradeBtn");
+      let clickBtn = document.getElementById("clickUpgradeBtn");
+      let passiveCost = 50 * (passiveLevel + 1);
+      let clickCost = 50 * (clickUpgradeLevel + 1);
+      passiveBtn.innerHTML = `Улучшить пассивный доход (Уровень: ${passiveLevel}, Цена: ${passiveCost} <img src="assets/Сoin.png" alt="Монета" style="width:16px; height:16px; vertical-align:middle;">)`;
+      clickBtn.innerHTML = `Улучшить клик (Уровень: ${clickUpgradeLevel}, Цена: ${clickCost} <img src="assets/Сoin.png" alt="Монета" style="width:16px; height:16px; vertical-align:middle;">)`;
+    }
+    setInterval(() => {
+      coins += passiveLevel;
+      updateCoins();
+    }, 1000);
+    function showMessage(msg) {
+      document.getElementById("messageText").textContent = msg;
+      document.getElementById("messageModal").style.display = "block";
+    }
+    function closeMessage() {
+      document.getElementById("messageModal").style.display = "none";
+    }
+    function showCreatorInfo() {
+      showMessage("Создатель игры: ананасик версия 1.0");
+    }
+    function openSettingsModal() {
+      updateMusicStatus();
+      document.getElementById("settingsModal").style.display = "block";
+    }
+    function closeSettingsModal() {
+      document.getElementById("settingsModal").style.display = "none";
+    }
+    function updateMusicStatus() {
+      const statusText = document.getElementById("musicStatusText");
+      const toggleBtn = document.getElementById("toggleMusicBtn");
+      if (musicEnabled) {
+        statusText.textContent = "Музыка включена";
+        toggleBtn.textContent = "Выключить музыку";
+      } else {
+        statusText.textContent = "Музыка выключена";
+        toggleBtn.textContent = "Включить музыку";
+      }
+    }
+    function toggleMusic() {
+      musicEnabled = !musicEnabled;
+      localStorage.setItem("musicEnabled", musicEnabled ? "true" : "false");
+      if (musicEnabled) {
+        bgMusic.play();
+      } else {
+        bgMusic.pause();
+      }
+      updateMusicStatus();
+    }
+    document.getElementById("volumeSlider").addEventListener("input", function() {
+      let volume = this.value / 100;
+      bgMusic.volume = volume;
+      localStorage.setItem("musicVolume", volume);
+      document.getElementById("volumeValue").textContent = `${this.value}%`;
+    });
+    window.addEventListener("load", function() {
+      document.getElementById("gameContainer").style.backgroundImage = `url('${selectedBackground}')`;
+      document.getElementById("pineapple").src = selectedSkin;
+      updateUpgradeButtons();
+      const volumeSlider = document.getElementById("volumeSlider");
+      volumeSlider.value = bgMusic.volume * 100;
+      document.getElementById("volumeValue").textContent = `${volumeSlider.value}%`;
+    });
+    window.addEventListener("load", function() {
+      const lastTime = localStorage.getItem("lastTime");
+      if (lastTime) {
+        const timeDifference = Date.now() - parseInt(lastTime);
+        const secondsAway = Math.floor(timeDifference / 1000);
+        const offlineCoins = secondsAway * passiveLevel;
+        if (offlineCoins > 0) {
+          coins += offlineCoins;
+          updateCoins();
+          showMessage(`Вы получили ${offlineCoins} монет, пока вас не было!`);
+        }
+      }
+    });
+    window.addEventListener("beforeunload", function() {
+      localStorage.setItem("lastTime", Date.now());
+    });
+  </script>
+</body>
+</html>
