@@ -338,6 +338,13 @@
       }
     }, { once: true });
 
+    // Обновляем lastTime при уходе (используем visibilitychange для Telegram)
+    document.addEventListener('visibilitychange', function() {
+      if (document.visibilityState === 'hidden') {
+        localStorage.setItem("lastTime", Date.now());
+      }
+    });
+
     // --- Ежедневные задания ---
     function resetDailyTasksIfNeeded() {
       let today = new Date().toISOString().slice(0, 10);
