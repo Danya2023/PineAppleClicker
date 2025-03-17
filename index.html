@@ -39,7 +39,7 @@
       font-size: 30px;
       color: white;
       font-weight: bold;
-      margin-bottom: 20px; /* отступ между счётчиком и ананасом */
+      margin-bottom: 20px;
       display: flex;
       align-items: center;
     }
@@ -68,7 +68,6 @@
       align-items: center;
       gap: 10px;
     }
-    /* Кнопки в футере */
     .bottom-buttons {
       display: flex;
       gap: 20px;
@@ -94,7 +93,7 @@
     .daily-button:hover {
       background-color: #FF8C00;
     }
-    /* Кнопка "Об авторе" в правом верхнем углу */
+    /* Верхние кнопки */
     .top-button {
       position: absolute;
       top: 10px;
@@ -111,7 +110,6 @@
     .top-button:hover {
       background-color: #1976D2;
     }
-    /* Кнопка настроек в левом верхнем углу */
     .left-button {
       position: absolute;
       top: 10px;
@@ -164,7 +162,7 @@
       transition: transform 1s ease-out, opacity 1s ease-out;
       pointer-events: none;
     }
-    /* Классы для изображений скинов */
+    /* Стили для изображений скинов */
     .locked-skin {
       width: 100px;
       height: 66px;
@@ -344,7 +342,17 @@
       }
     }, { once: true });
 
-    // Обновляем lastTime каждую минуту, чтобы хранить актуальное время
+    // Используем Telegram Web Apps событие закрытия, если доступно, иначе beforeunload
+    if (window.Telegram && window.Telegram.WebApp) {
+      window.Telegram.WebApp.onEvent('close', () => {
+        localStorage.setItem("lastTime", Date.now());
+      });
+    } else {
+      window.addEventListener("beforeunload", function() {
+        localStorage.setItem("lastTime", Date.now());
+      });
+    }
+    // Также обновляем время каждую минуту как резервный вариант
     setInterval(() => {
       localStorage.setItem("lastTime", Date.now());
     }, 60000);
@@ -696,9 +704,7 @@
         }
       }
     });
-    window.addEventListener("beforeunload", function() {
-      localStorage.setItem("lastTime", Date.now());
-    });
   </script>
 </body>
 </html>
+
