@@ -28,7 +28,7 @@
       background-attachment: fixed;
       display: flex;
       flex-direction: column;
-      justify-content: center; /* Центрируем содержимое по вертикали */
+      justify-content: center;
       align-items: center;
       position: relative;
     }
@@ -162,7 +162,7 @@
       transition: transform 1s ease-out, opacity 1s ease-out;
       pointer-events: none;
     }
-    /* Стили для изображений скинов */
+    /* Классы для изображений скинов */
     .locked-skin {
       width: 100px;
       height: 66px;
@@ -209,6 +209,24 @@
     .daily-task button:hover {
       background: linear-gradient(45deg, #FF8C00, #FFA500);
     }
+    /* Стили для модального окна оффлайн дохода */
+    #offlineModal {
+      background: rgba(0,0,0,0.8);
+      color: #fff;
+      padding: 20px;
+      border-radius: 10px;
+      text-align: center;
+    }
+    #offlineModal button {
+      margin-top: 10px;
+      padding: 10px 20px;
+      font-size: 16px;
+      border: none;
+      border-radius: 5px;
+      background: #4CAF50;
+      color: #fff;
+      cursor: pointer;
+    }
   </style>
 </head>
 <body>
@@ -218,16 +236,19 @@
       console.error("Unhandled promise rejection:", event.reason);
     });
   </script>
+
+  <!-- Основной контейнер игры -->
   <div class="container" id="gameContainer">
     <!-- Верхние кнопки -->
     <button class="left-button" onclick="openSettingsModal()">Настройки</button>
     <button class="top-button" onclick="showCreatorInfo()">Об авторе</button>
     
-    <!-- Основной контент: счётчик и ананас -->
+    <!-- Счётчик монет -->
     <div class="counter">
       <img src="assets/Сoin.png" alt="Монета" class="coin-icon">
       <span id="coins">0</span>
     </div>
+    <!-- Ананас для кликов -->
     <img src="assets/PineApple.png" class="clickable" id="pineapple" alt="Ананас">
     
     <!-- Футер с кнопками -->
@@ -287,7 +308,11 @@
     <button onclick="closeMessage()">Закрыть</button>
   </div>
 
+  <!-- Модальное окно для ежедневных заданий -->
   <div class="modal" id="dailyTaskModal"></div>
+
+  <!-- Модальное окно для оффлайн дохода -->
+  <div class="modal" id="offlineModal"></div>
 
   <!-- Фоновая музыка -->
   <audio id="bgMusic" loop autoplay muted>
@@ -698,13 +723,35 @@
         const secondsAway = Math.floor(timeDifference / 1000);
         const offlineCoins = secondsAway * passiveLevel;
         if (offlineCoins > 0) {
-          coins += offlineCoins;
-          updateCoins();
-          showMessage(`Вы получили ${offlineCoins} монет, пока вас не было!`);
+          // Показываем оффлайн-заработок через модальное окно, а не сразу начисляем
+          showOfflineEarnings(offlineCoins);
         }
       }
+    });
+    function showOfflineEarnings(earned) {
+      let offlineModal = document.getElementById("offlineModal");
+      offlineModal.innerHTML = `
+        <h3>Оффлайн заработок</h3>
+        <p>Вы отсутствовали ${earned / passiveLevel} секунд и заработали ${earned} монет!</p>
+        <button onclick="claimOfflineEarnings(${earned})">Забрать доход</button>
+        <button onclick="closeOfflineModal()">Отмена</button>
+      `;
+      offlineModal.style.display = "block";
+    }
+    function claimOfflineEarnings(earned) {
+      coins += earned;
+      updateCoins();
+      closeOfflineModal();
+      showMessage(`Вы получили ${earned} монет за оффлайн время!`);
+      // Обновляем lastTime, чтобы оффлайн доход больше не начислялся
+      localStorage.setItem("lastTime", Date.now());
+    }
+    function closeOfflineModal() {
+      document.getElementById("offlineModal").style.display = "none";
+    }
+    window.addEventListener("beforeunload", function() {
+      localStorage.setItem("lastTime", Date.now());
     });
   </script>
 </body>
 </html>
-
