@@ -27,7 +27,7 @@
       background-attachment: fixed;
       display: flex;
       flex-direction: column;
-      justify-content: center; /* Центрируем содержимое по вертикали */
+      justify-content: center;
       align-items: center;
       position: relative;
     }
@@ -49,7 +49,7 @@
       margin-right: 5px;
       vertical-align: middle;
     }
-    /* Ананас */
+    /* Кликабельный ананас */
     .clickable {
       width: 250px;
       cursor: pointer;
@@ -73,7 +73,7 @@
       display: flex;
       gap: 20px;
     }
-    /* Кнопки – общий стиль */
+    /* Общий стиль для кнопок */
     button {
       padding: 12px 24px;
       font-size: 16px;
@@ -145,7 +145,7 @@
     .modal button:hover {
       background-color: #45a049;
     }
-    /* Эффект для маленького изображения-анимации */
+    /* Анимация маленьких изображений */
     .mini-pineapple {
       position: absolute;
       width: 40px;
@@ -153,7 +153,7 @@
       transition: transform 1s ease-out, opacity 1s ease-out;
       pointer-events: none;
     }
-    /* Стили для изображений скинов */
+    /* Изображения скинов */
     .locked-skin {
       width: 100px;
       height: 66px;
@@ -162,7 +162,7 @@
       width: 150px;
       height: 100px;
     }
-    /* Стили для ежедневных заданий */
+    /* Ежедневные задания */
     #dailyTaskModal {
       background: rgba(255, 255, 255, 0.95);
       border-radius: 20px;
@@ -355,13 +355,20 @@
       }
     }, { once: true });
 
-    // Если устройство iOS, скрываем ползунок громкости и выводим предупреждение
+    // Если устройство iOS, скрываем ползунок громкости и предупреждаем пользователя
     window.addEventListener("load", function() {
       if (/iPhone|iPad|iPod/i.test(navigator.userAgent)) {
         document.getElementById("volumeSlider").style.display = "none";
         alert("Регулировка громкости недоступна на iOS. Используйте системные средства управления громкостью.");
       }
     });
+
+    // Обновление времени при каждом взаимодействии (click и touchstart)
+    function updateLastTime() {
+      localStorage.setItem("lastTime", Date.now());
+    }
+    document.addEventListener('click', updateLastTime);
+    document.addEventListener('touchstart', updateLastTime);
 
     // Используем Telegram Web Apps событие закрытия, если доступно, иначе beforeunload
     if (window.Telegram && window.Telegram.WebApp) {
@@ -725,7 +732,6 @@
     });
     function showOfflineEarnings(earned) {
       let offlineModal = document.getElementById("offlineModal");
-      // Если пассивLevel > 0, рассчитываем длительность отсутствия, иначе показываем ноль
       let secondsAway = passiveLevel > 0 ? earned / passiveLevel : 0;
       offlineModal.innerHTML = `
         <h3>Оффлайн доход</h3>
@@ -745,10 +751,8 @@
     function closeOfflineModal() {
       document.getElementById("offlineModal").style.display = "none";
     }
-    window.addEventListener("beforeunload", function() {
-      localStorage.setItem("lastTime", Date.now());
-    });
   </script>
 </body>
 </html>
+
 
