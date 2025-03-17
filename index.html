@@ -5,17 +5,16 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
   <title>Ананас Кликер</title>
   <style>
-    /* Базовые стили страницы */
+    /* Основной стиль страницы */
     body {
       margin: 0;
       padding: 0;
-      overflow: hidden;
-      height: 100vh;
+      background: #000;
+      font-family: 'Arial', sans-serif;
       display: flex;
       justify-content: center;
       align-items: center;
-      background: #000;
-      font-family: 'Arial', sans-serif;
+      height: 100vh;
     }
     .container {
       width: 100vw;
@@ -28,16 +27,17 @@
       background-attachment: fixed;
       display: flex;
       flex-direction: column;
-      justify-content: center;
+      justify-content: center; /* Центрируем содержимое по вертикали */
       align-items: center;
       position: relative;
     }
     html {
       touch-action: manipulation;
     }
+    /* Счётчик */
     .counter {
       font-size: 30px;
-      color: white;
+      color: #fff;
       font-weight: bold;
       margin-bottom: 20px;
       display: flex;
@@ -49,6 +49,7 @@
       margin-right: 5px;
       vertical-align: middle;
     }
+    /* Ананас */
     .clickable {
       width: 250px;
       cursor: pointer;
@@ -57,7 +58,7 @@
     .clickable:hover {
       transform: scale(1.1);
     }
-    /* Футер с кнопками – позиционируем его внизу */
+    /* Футер – всегда внизу */
     .footer {
       position: absolute;
       bottom: 20px;
@@ -72,89 +73,79 @@
       display: flex;
       gap: 20px;
     }
-    .bottom-buttons button,
-    .daily-button {
-      padding: 15px 25px;
-      font-size: 18px;
+    /* Кнопки – общий стиль */
+    button {
+      padding: 12px 24px;
+      font-size: 16px;
       border: none;
-      border-radius: 8px;
+      border-radius: 25px;
       cursor: pointer;
-      background-color: #4CAF50;
-      color: white;
-      transition: background-color 0.3s ease;
+      transition: background 0.3s ease, transform 0.2s ease;
     }
-    .bottom-buttons button:hover,
-    .daily-button:hover {
+    button:hover {
+      transform: scale(1.05);
+    }
+    .bottom-buttons button {
+      background-color: #4CAF50;
+      color: #fff;
+    }
+    .bottom-buttons button:hover {
       background-color: #45a049;
     }
     .daily-button {
-      background-color: #FFA500;
+      background: linear-gradient(45deg, #FFA500, #FF8C00);
+      color: #fff;
     }
     .daily-button:hover {
-      background-color: #FF8C00;
+      background: linear-gradient(45deg, #FF8C00, #FFA500);
     }
     /* Верхние кнопки */
-    .top-button {
+    .top-button, .left-button {
       position: absolute;
+      padding: 10px 15px;
+      font-size: 14px;
+      border-radius: 5px;
+      cursor: pointer;
+      background-color: #2196F3;
+      color: #fff;
+      transition: background 0.3s ease;
+    }
+    .top-button {
       top: 10px;
       right: 10px;
-      padding: 10px 15px;
-      font-size: 14px;
-      border: none;
-      border-radius: 5px;
-      cursor: pointer;
-      background-color: #2196F3;
-      color: white;
-      transition: background-color 0.3s ease;
-    }
-    .top-button:hover {
-      background-color: #1976D2;
     }
     .left-button {
-      position: absolute;
       top: 10px;
       left: 10px;
-      padding: 10px 15px;
-      font-size: 14px;
-      border: none;
-      border-radius: 5px;
-      cursor: pointer;
-      background-color: #2196F3;
-      color: white;
-      transition: background-color 0.3s ease;
     }
-    .left-button:hover {
+    .top-button:hover, .left-button:hover {
       background-color: #1976D2;
     }
-    /* Стили модальных окон */
+    /* Модальные окна */
     .modal {
       display: none;
       position: fixed;
       top: 50%;
       left: 50%;
       transform: translate(-50%, -50%);
-      background: white;
-      padding: 20px;
-      border-radius: 10px;
-      box-shadow: 0 0 10px rgba(0,0,0,0.3);
+      background: #fff;
+      padding: 30px 20px;
+      border-radius: 20px;
+      box-shadow: 0 5px 15px rgba(0,0,0,0.3);
       z-index: 100;
       text-align: center;
-      width: 80%;
+      width: 90%;
       max-width: 400px;
     }
     .modal button {
       margin-top: 15px;
-      padding: 10px 20px;
-      font-size: 16px;
-      border: none;
-      border-radius: 5px;
-      background: #4CAF50;
+      background-color: #4CAF50;
       color: #fff;
-      cursor: pointer;
     }
     .modal button:hover {
-      background: #45a049;
+      background-color: #45a049;
     }
+    /* Эффект для маленького изображения-анимации */
     .mini-pineapple {
       position: absolute;
       width: 40px;
@@ -162,7 +153,7 @@
       transition: transform 1s ease-out, opacity 1s ease-out;
       pointer-events: none;
     }
-    /* Классы для изображений скинов */
+    /* Стили для изображений скинов */
     .locked-skin {
       width: 100px;
       height: 66px;
@@ -202,19 +193,19 @@
       border: none;
       border-radius: 20px;
       background: linear-gradient(45deg, #FFA500, #FF8C00);
-      color: white;
+      color: #fff;
       cursor: pointer;
       transition: background 0.3s ease;
     }
     .daily-task button:hover {
       background: linear-gradient(45deg, #FF8C00, #FFA500);
     }
-    /* Стили для модального окна оффлайн дохода */
+    /* Модальное окно оффлайн дохода */
     #offlineModal {
-      background: rgba(0,0,0,0.8);
+      background: rgba(0,0,0,0.85);
       color: #fff;
       padding: 20px;
-      border-radius: 10px;
+      border-radius: 15px;
       text-align: center;
     }
     #offlineModal button {
@@ -243,12 +234,11 @@
     <button class="left-button" onclick="openSettingsModal()">Настройки</button>
     <button class="top-button" onclick="showCreatorInfo()">Об авторе</button>
     
-    <!-- Счётчик монет -->
+    <!-- Счётчик монет и ананас -->
     <div class="counter">
       <img src="assets/Сoin.png" alt="Монета" class="coin-icon">
       <span id="coins">0</span>
     </div>
-    <!-- Ананас для кликов -->
     <img src="assets/PineApple.png" class="clickable" id="pineapple" alt="Ананас">
     
     <!-- Футер с кнопками -->
@@ -308,10 +298,8 @@
     <button onclick="closeMessage()">Закрыть</button>
   </div>
 
-  <!-- Модальное окно для ежедневных заданий -->
   <div class="modal" id="dailyTaskModal"></div>
 
-  <!-- Модальное окно для оффлайн дохода -->
   <div class="modal" id="offlineModal"></div>
 
   <!-- Фоновая музыка -->
@@ -367,6 +355,14 @@
       }
     }, { once: true });
 
+    // Если устройство iOS, скрываем ползунок громкости и выводим предупреждение
+    window.addEventListener("load", function() {
+      if (/iPhone|iPad|iPod/i.test(navigator.userAgent)) {
+        document.getElementById("volumeSlider").style.display = "none";
+        alert("Регулировка громкости недоступна на iOS. Используйте системные средства управления громкостью.");
+      }
+    });
+
     // Используем Telegram Web Apps событие закрытия, если доступно, иначе beforeunload
     if (window.Telegram && window.Telegram.WebApp) {
       window.Telegram.WebApp.onEvent('close', () => {
@@ -377,7 +373,7 @@
         localStorage.setItem("lastTime", Date.now());
       });
     }
-    // Также обновляем время каждую минуту как резервный вариант
+    // Резервное обновление времени каждую минуту
     setInterval(() => {
       localStorage.setItem("lastTime", Date.now());
     }, 60000);
@@ -723,16 +719,17 @@
         const secondsAway = Math.floor(timeDifference / 1000);
         const offlineCoins = secondsAway * passiveLevel;
         if (offlineCoins > 0) {
-          // Показываем оффлайн-заработок через модальное окно, а не сразу начисляем
           showOfflineEarnings(offlineCoins);
         }
       }
     });
     function showOfflineEarnings(earned) {
       let offlineModal = document.getElementById("offlineModal");
+      // Если пассивLevel > 0, рассчитываем длительность отсутствия, иначе показываем ноль
+      let secondsAway = passiveLevel > 0 ? earned / passiveLevel : 0;
       offlineModal.innerHTML = `
-        <h3>Оффлайн заработок</h3>
-        <p>Вы отсутствовали ${earned / passiveLevel} секунд и заработали ${earned} монет!</p>
+        <h3>Оффлайн доход</h3>
+        <p>Вы отсутствовали ${Math.floor(secondsAway)} секунд и заработали ${earned} монет!</p>
         <button onclick="claimOfflineEarnings(${earned})">Забрать доход</button>
         <button onclick="closeOfflineModal()">Отмена</button>
       `;
@@ -743,7 +740,6 @@
       updateCoins();
       closeOfflineModal();
       showMessage(`Вы получили ${earned} монет за оффлайн время!`);
-      // Обновляем lastTime, чтобы оффлайн доход больше не начислялся
       localStorage.setItem("lastTime", Date.now());
     }
     function closeOfflineModal() {
@@ -755,3 +751,4 @@
   </script>
 </body>
 </html>
+
