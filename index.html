@@ -34,36 +34,17 @@
     html {
       touch-action: manipulation;
     }
-    /* Счётчик */
-    .counter {
-      font-size: 30px;
-      color: #fff;
-      font-weight: bold;
-      margin-bottom: 20px;
-      display: flex;
-      align-items: center;
-    }
-    .coin-icon {
-      width: 30px;
-      height: 30px;
-      margin-right: 5px;
-      vertical-align: middle;
-    }
-    /* Кликабельный ананас */
-    .clickable {
-      width: 250px;
-      cursor: pointer;
-      transition: transform 0.3s ease;
-      -webkit-tap-highlight-color: transparent;
-    }
-    .clickable:hover {
-      transform: scale(1.1);
-    }
     /* Верхние кнопки */
     .top-right {
       position: absolute;
       top: 10px;
       right: 10px;
+    }
+    .top-center {
+      position: absolute;
+      top: 10px;
+      left: 50%;
+      transform: translateX(-50%);
     }
     .top-button {
       padding: 10px 15px;
@@ -93,6 +74,31 @@
     }
     .left-button:hover {
       background-color: #1976D2;
+    }
+    /* Счётчик */
+    .counter {
+      font-size: 30px;
+      color: #fff;
+      font-weight: bold;
+      margin-bottom: 20px;
+      display: flex;
+      align-items: center;
+    }
+    .coin-icon {
+      width: 30px;
+      height: 30px;
+      margin-right: 5px;
+      vertical-align: middle;
+    }
+    /* Кликабельный ананас */
+    .clickable {
+      width: 250px;
+      cursor: pointer;
+      transition: transform 0.3s ease;
+      -webkit-tap-highlight-color: transparent;
+    }
+    .clickable:hover {
+      transform: scale(1.1);
     }
     /* Футер */
     .footer {
@@ -250,18 +256,6 @@
   </style>
 </head>
 <body>
-  <!-- Фон задаётся через body -->
-  
-  <!-- Глобальный обработчик необработанных обещаний и функция форматирования -->
-  <script>
-    window.addEventListener("unhandledrejection", function(event) {
-      console.error("Unhandled promise rejection:", event.reason);
-    });
-    function formatNumber(num) {
-      return num.toString().replace(/\B(?=(\d{3})+(?!\d))/g, ".");
-    }
-  </script>
-
   <!-- Основной контейнер игры -->
   <div class="container" id="gameContainer">
     <!-- Верхняя левая кнопка: Настройки -->
@@ -269,6 +263,10 @@
     <!-- Верхняя правая кнопка: Об авторе -->
     <div class="top-right">
       <button class="top-button" onclick="showCreatorInfo()">Об авторе</button>
+    </div>
+    <!-- Верхняя центральная кнопка: Рейтинг -->
+    <div class="top-center">
+      <button class="top-button" onclick="updateTelegramScore()">Рейтинг</button>
     </div>
     
     <!-- Счётчик монет и ананас -->
@@ -288,10 +286,8 @@
     </div>
   </div>
 
-  <!-- Модальное окно для сообщений (также для информации об авторе) -->
+  <!-- Модальные окна -->
   <div class="modal" id="messageModal"></div>
-
-  <!-- Модальные окна магазина и улучшений -->
   <div class="modal" id="shopModal">
     <h3>Магазин</h3>
     <div style="margin-bottom: 15px;">
@@ -300,7 +296,6 @@
     </div>
     <button onclick="closeShopMenu()">Закрыть магазин</button>
   </div>
-
   <div class="modal" id="upgradeModal">
     <h3>Улучшения</h3>
     <div style="margin-bottom: 15px;">
@@ -309,21 +304,16 @@
     </div>
     <button onclick="closeUpgradeMenu()">Закрыть улучшения</button>
   </div>
-
-  <!-- Меню выбора фонов -->
   <div class="modal" id="backgroundMenu">
     <h3>Выберите фон</h3>
     <div id="backgroundList"></div>
     <button onclick="closeBackgroundMenu()">Закрыть</button>
   </div>
-
-  <!-- Меню выбора скинов -->
   <div class="modal" id="skinMenu">
     <h3>Выберите скин для ананаса</h3>
     <div id="skinList"></div>
     <button onclick="closeSkinMenu()">Закрыть</button>
   </div>
-
   <div class="modal" id="settingsModal">
     <h3>Настройки музыки</h3>
     <p id="musicStatusText">Музыка включена</p>
@@ -334,9 +324,7 @@
     </div>
     <button onclick="closeSettingsModal()">Закрыть настройки</button>
   </div>
-
   <div class="modal" id="dailyTaskModal"></div>
-
   <div class="modal" id="offlineModal"></div>
 
   <!-- Фоновая музыка -->
@@ -345,6 +333,23 @@
   </audio>
 
   <script>
+    // Глобальный обработчик ошибок и функция форматирования чисел
+    window.addEventListener("unhandledrejection", event => {
+      console.error("Unhandled promise rejection:", event.reason);
+    });
+    function formatNumber(num) {
+      return num.toString().replace(/\B(?=(\d{3})+(?!\d))/g, ".");
+    }
+    // Функция для временного не блокирующего уведомления
+    function showTemporaryMessage(msg, duration) {
+      let modal = document.getElementById("messageModal");
+      modal.innerHTML = `<p id="messageText">${msg}</p>`;
+      modal.style.display = "block";
+      setTimeout(() => {
+        modal.style.display = "none";
+      }, duration);
+    }
+
     // Основные переменные игры
     let coins = parseInt(localStorage.getItem("coins")) || 0;
     let baseClickValue = 1;
@@ -359,8 +364,6 @@
     let selectedSkin = localStorage.getItem("selectedSkin") || "assets/PineApple.png";
 
     updateCoins();
-
-    // Функция обновления монет с форматированием
     function updateCoins() {
       document.getElementById("coins").textContent = formatNumber(Math.floor(coins));
       localStorage.setItem("coins", coins);
@@ -368,75 +371,64 @@
 
     // Музыкальные настройки
     let musicEnabled = localStorage.getItem("musicEnabled");
-    if (musicEnabled === null) {
+    if(musicEnabled === null) {
       musicEnabled = true;
       localStorage.setItem("musicEnabled", "true");
     } else {
       musicEnabled = (musicEnabled === "true");
     }
     const bgMusic = document.getElementById("bgMusic");
-
     let musicVolume = localStorage.getItem("musicVolume");
-    if (musicVolume === null) {
+    if(musicVolume === null) {
       musicVolume = 1;
       localStorage.setItem("musicVolume", musicVolume);
     } else {
       musicVolume = parseFloat(musicVolume);
     }
     bgMusic.volume = musicVolume;
-    if (musicEnabled) {
+    if(musicEnabled) {
       bgMusic.play().catch(() => {});
     } else {
       bgMusic.pause();
     }
     document.body.addEventListener('click', function() {
-      if (bgMusic.muted) {
+      if(bgMusic.muted) {
         bgMusic.muted = false;
-        if (musicEnabled) {
+        if(musicEnabled) {
           bgMusic.play();
         }
       }
     }, { once: true });
-
-    // Если устройство iOS, скрываем ползунок громкости и предупреждаем пользователя
+    
+    // Если iOS – скрываем ползунок громкости и уведомляем пользователя
     window.addEventListener("load", function() {
-      if (/iPhone|iPad|iPod/i.test(navigator.userAgent)) {
+      if(/iPhone|iPad|iPod/i.test(navigator.userAgent)) {
         document.getElementById("volumeSlider").style.display = "none";
-        alert("Регулировка громкости недоступна на iOS. Используйте системные средства управления громкостью.");
+        showTemporaryMessage("Регулировка громкости недоступна на iOS. Используйте системные средства.", 3000);
       }
     });
-
-    // Обновление времени при каждом взаимодействии (click и touchstart)
+    
+    // Обновление времени для оффлайн дохода
     function updateLastTime() {
       localStorage.setItem("lastTime", Date.now());
     }
     document.addEventListener('click', updateLastTime);
     document.addEventListener('touchstart', updateLastTime);
-
-    // Telegram Web Apps событие закрытия или beforeunload
-    if (window.Telegram && window.Telegram.WebApp) {
-      window.Telegram.WebApp.onEvent('close', () => {
-        localStorage.setItem("lastTime", Date.now());
-      });
-    } else {
-      window.addEventListener("beforeunload", function() {
-        localStorage.setItem("lastTime", Date.now());
-      });
-    }
-    // Резервное обновление времени каждую минуту
+    window.addEventListener("beforeunload", () => {
+      localStorage.setItem("lastTime", Date.now());
+    });
     setInterval(() => {
       localStorage.setItem("lastTime", Date.now());
     }, 60000);
-    
     setInterval(() => {
-    updateDailyTask("playTime", 1);
+      updateDailyTask("playTime", 1);
     }, 1000);
 
     // --- Ежедневные задания ---
     function resetDailyTasksIfNeeded() {
       let today = new Date().toISOString().slice(0, 10);
       let lastReset = localStorage.getItem("lastDailyReset");
-      if (lastReset !== today) {
+      if(lastReset !== today) {
         let dailyTasks = [
           { id: "clicks", description: "Накликать 1000 раз", required: 1000, reward: 5000, progress: 0, claimed: false },
           { id: "playTime", description: "Поиграть 10 минут", required: 600, reward: 3000, progress: 0, claimed: false }
@@ -452,9 +444,9 @@
     function updateDailyTask(taskId, increment) {
       let tasks = getDailyTasks();
       tasks.forEach(task => {
-        if (task.id === taskId) {
+        if(task.id === taskId) {
           task.progress += increment;
-          if (task.progress > task.required) task.progress = task.required;
+          if(task.progress > task.required) task.progress = task.required;
         }
       });
       localStorage.setItem("dailyTasks", JSON.stringify(tasks));
@@ -462,7 +454,7 @@
     function claimDailyTaskReward(taskId) {
       let tasks = getDailyTasks();
       tasks.forEach(task => {
-        if (task.id === taskId && !task.claimed && task.progress >= task.required) {
+        if(task.id === taskId && !task.claimed && task.progress >= task.required) {
           coins += task.reward;
           task.claimed = true;
           updateCoins();
@@ -473,12 +465,12 @@
     }
     function openDailyTaskMenu() {
       let tasks = getDailyTasks();
-      let html = "<h3>Ежедневные задания</h3>";
+      let html = `<h3>Ежедневные задания</h3>`;
       tasks.forEach(task => {
         html += `<div class="daily-task">
           <h4>${task.description}</h4>
           <p>Прогресс: ${formatNumber(task.progress)} / ${formatNumber(task.required)}</p>`;
-        if (!task.claimed && task.progress >= task.required) {
+        if(!task.claimed && task.progress >= task.required) {
           html += `<button onclick="claimDailyTaskReward('${task.id}')">Получить награду</button>`;
         } else if(task.claimed) {
           html += `<p>Награда получена</p>`;
@@ -507,7 +499,7 @@
       createPineappleExplosion(event.clientX, event.clientY);
     });
     function createPineappleExplosion(x, y) {
-      for (let i = 0; i < 10; i++) {
+      for(let i = 0; i < 10; i++){
         let miniPineapple = document.createElement("img");
         miniPineapple.src = "assets/PineApple.png"; 
         miniPineapple.classList.add("mini-pineapple");
@@ -552,23 +544,19 @@
       let menu = document.getElementById("backgroundList");
       menu.innerHTML = "";
       let backgrounds = [
-        { price: 100000, path: "assets/FonShop1.png", info: "Лето с интересными тропическими деревьями" },
+        { price: 100000, path: "assets/FonShop1.png", info: "Лето с тропическими деревьями" },
         { price: 1000000, path: "assets/FonShop2.png", info: "Зима красиво, но холодно" },
-        { price: 10000000, path: "assets/FonShop3.png", info: "Горы и машины, что может быть лучше этого" },
-        { price: 100000000, path: "assets/FonShop4.png", info: "Марс - неизведанное и таинственное место, ну хоть ананас побывает первым на марсе" }
+        { price: 10000000, path: "assets/FonShop3.png", info: "Горы и машины" },
+        { price: 100000000, path: "assets/FonShop4.png", info: "Марс — неизведанное место" }
       ];
       backgrounds.forEach(bg => {
         let bgCard = document.createElement("div");
-        // Элементы будут располагаться вертикально
         bgCard.style.display = "flex";
         bgCard.style.flexDirection = "column";
         bgCard.style.alignItems = "center";
-        
         let img = document.createElement("img");
         img.src = bg.path;
         img.classList.add("shop-background");
-        
-        // Добавляем иконку информации
         let infoImg = document.createElement("img");
         infoImg.src = "assets/exclamation mark.png";
         infoImg.classList.add("info-icon");
@@ -576,21 +564,19 @@
           e.stopPropagation();
           showMessage(bg.info);
         };
-
         let button = document.createElement("button");
-        if (ownedBackgrounds.includes(bg.path)) {
+        if(ownedBackgrounds.includes(bg.path)){
           button.textContent = (selectedBackground === bg.path ? "Выбран" : "Выбрать");
         } else {
           button.innerHTML = `Купить за ${formatNumber(bg.price)} <img src="assets/Сoin.png" alt="Монета" style="width:16px; height:16px; vertical-align:middle;">`;
         }
-        button.onclick = function() {
-          if (!ownedBackgrounds.includes(bg.path)) {
+        button.onclick = function(){
+          if(!ownedBackgrounds.includes(bg.path)){
             buyBackground(bg.price, bg.path);
           } else {
             selectBackground(bg.path);
           }
         };
-        
         bgCard.appendChild(img);
         bgCard.appendChild(infoImg);
         bgCard.appendChild(button);
@@ -608,7 +594,7 @@
       closeBackgroundMenu();
     }
     function buyBackground(price, path) {
-      if (coins >= price) {
+      if(coins >= price){
         coins -= price;
         ownedBackgrounds.push(path);
         localStorage.setItem("ownedBackgrounds", JSON.stringify(ownedBackgrounds));
@@ -621,75 +607,49 @@
     
     // Функции для работы со скинами
     function openSkinMenu() {
-  document.getElementById("shopModal").style.display = "none";
-  let menu = document.getElementById("skinList");
-  menu.innerHTML = "";
-  // Добавляем новое свойство shopPath для отображения в магазине
-  let skins = [
-    { 
-      price: 1000000, 
-      path: "assets/Skin1.png", 
-      shopPath: "assets/Skin1_locked.png", 
-      lockedPath: "assets/Skin1_locked.png", 
-      info: "Пиксельный ананас" 
-    },
-    { 
-      price: 10000000, 
-      path: "assets/Skin2.png", 
-      shopPath: "assets/Skin2_locked.png", 
-      lockedPath: "assets/Skin2_locked.png", 
-      info: "Ананас в стиле модника, красивый и всегда следит за модой" 
-    },
-    { 
-      price: 100000000, 
-      path: "assets/Skin3.png", 
-      shopPath: "assets/Skin3_locked.png", 
-      lockedPath: "assets/Skin3_locked.png", 
-      info: "Самый редкий скин в игре - золотой ананас, его имеют только 1% из всех игроков" 
+      document.getElementById("shopModal").style.display = "none";
+      let menu = document.getElementById("skinList");
+      menu.innerHTML = "";
+      let skins = [
+        { price: 1000000, path: "assets/Skin1.png", shopPath: "assets/Skin1_locked.png", lockedPath: "assets/Skin1_locked.png", info: "Пиксельный ананас" },
+        { price: 10000000, path: "assets/Skin2.png", shopPath: "assets/Skin2_locked.png", lockedPath: "assets/Skin2_locked.png", info: "Ананас в стиле модника" },
+        { price: 100000000, path: "assets/Skin3.png", shopPath: "assets/Skin3_locked.png", lockedPath: "assets/Skin3_locked.png", info: "Золотой ананас – редкий скин" }
+      ];
+      skins.forEach(skin => {
+        let skinCard = document.createElement("div");
+        skinCard.style.display = "flex";
+        skinCard.style.flexDirection = "column";
+        skinCard.style.alignItems = "center";
+        let img = document.createElement("img");
+        img.src = ownedSkins.includes(skin.path) ? skin.shopPath : skin.lockedPath;
+        img.classList.add("shop-skin");
+        let infoImg = document.createElement("img");
+        infoImg.src = "assets/exclamation mark.png";
+        infoImg.classList.add("info-icon");
+        infoImg.onclick = function(e) {
+          e.stopPropagation();
+          showMessage(skin.info);
+        };
+        let button = document.createElement("button");
+        if(ownedSkins.includes(skin.path)){
+          button.textContent = (selectedSkin === skin.path ? "Выбран" : "Выбрать");
+        } else {
+          button.innerHTML = `Купить за ${formatNumber(skin.price)} <img src="assets/Сoin.png" alt="Монета" style="width:16px; height:16px; vertical-align:middle;">`;
+        }
+        button.onclick = function(){
+          if(!ownedSkins.includes(skin.path)){
+            buySkin(skin.price, skin.path);
+          } else {
+            selectSkin(skin.path);
+          }
+        };
+        skinCard.appendChild(img);
+        skinCard.appendChild(infoImg);
+        skinCard.appendChild(button);
+        menu.appendChild(skinCard);
+      });
+      document.getElementById("skinMenu").style.display = "block";
     }
-  ];
-  skins.forEach(skin => {
-    let skinCard = document.createElement("div");
-    skinCard.style.display = "flex";
-    skinCard.style.flexDirection = "column";
-    skinCard.style.alignItems = "center";
-    
-    let img = document.createElement("img");
-    // Если скин куплен, используем специальное изображение для магазина, иначе – изображение заблокированного скина
-    img.src = ownedSkins.includes(skin.path) ? skin.shopPath : skin.lockedPath;
-    img.classList.add("shop-skin");
-    
-    // Добавляем иконку информации для скина
-    let infoImg = document.createElement("img");
-    infoImg.src = "assets/exclamation mark.png";
-    infoImg.classList.add("info-icon");
-    infoImg.onclick = function(e) {
-      e.stopPropagation();
-      showMessage(skin.info);
-    };
-
-    let button = document.createElement("button");
-    if (ownedSkins.includes(skin.path)) {
-      button.textContent = (selectedSkin === skin.path ? "Выбран" : "Выбрать");
-    } else {
-      button.innerHTML = `Купить за ${formatNumber(skin.price)} <img src="assets/Сoin.png" alt="Монета" style="width:16px; height:16px; vertical-align:middle;">`;
-    }
-    button.onclick = function() {
-      if (!ownedSkins.includes(skin.path)) {
-        buySkin(skin.price, skin.path);
-      } else {
-        selectSkin(skin.path);
-      }
-    };
-    
-    skinCard.appendChild(img);
-    skinCard.appendChild(infoImg);
-    skinCard.appendChild(button);
-    menu.appendChild(skinCard);
-  });
-  document.getElementById("skinMenu").style.display = "block";
-}
-
     function closeSkinMenu() {
       document.getElementById("skinMenu").style.display = "none";
     }
@@ -700,7 +660,7 @@
       closeSkinMenu();
     }
     function buySkin(price, path) {
-      if (coins >= price) {
+      if(coins >= price){
         coins -= price;
         ownedSkins.push(path);
         localStorage.setItem("ownedSkins", JSON.stringify(ownedSkins));
@@ -714,7 +674,7 @@
     // Функции для улучшений
     function buyPassiveUpgrade() {
       let cost = 50 * (passiveLevel + 1);
-      if (coins >= cost) {
+      if(coins >= cost){
         coins -= cost;
         passiveLevel++;
         localStorage.setItem("passiveLevel", passiveLevel);
@@ -726,7 +686,7 @@
     }
     function buyClickUpgrade() {
       let cost = 50 * (clickUpgradeLevel + 1);
-      if (coins >= cost) {
+      if(coins >= cost){
         coins -= cost;
         clickUpgradeLevel++;
         clickValue = baseClickValue + clickUpgradeLevel;
@@ -776,7 +736,7 @@
     function updateMusicStatus() {
       const statusText = document.getElementById("musicStatusText");
       const toggleBtn = document.getElementById("toggleMusicBtn");
-      if (musicEnabled) {
+      if(musicEnabled) {
         statusText.textContent = "Музыка включена";
         toggleBtn.textContent = "Выключить музыку";
       } else {
@@ -787,7 +747,7 @@
     function toggleMusic() {
       musicEnabled = !musicEnabled;
       localStorage.setItem("musicEnabled", musicEnabled ? "true" : "false");
-      if (musicEnabled) {
+      if(musicEnabled) {
         bgMusic.play();
       } else {
         bgMusic.pause();
@@ -810,11 +770,11 @@
     });
     window.addEventListener("load", function() {
       const lastTime = localStorage.getItem("lastTime");
-      if (lastTime) {
+      if(lastTime){
         const timeDifference = Date.now() - parseInt(lastTime);
         const secondsAway = Math.floor(timeDifference / 1000);
         const offlineCoins = secondsAway * passiveLevel;
-        if (offlineCoins > 0) {
+        if(offlineCoins > 0){
           showOfflineEarnings(offlineCoins);
         }
       }
@@ -822,12 +782,11 @@
     function showOfflineEarnings(earned) {
       let offlineModal = document.getElementById("offlineModal");
       let secondsAway = passiveLevel > 0 ? earned / passiveLevel : 0;
-      offlineModal.innerHTML = `
-        <h3>Оффлайн доход</h3>
+      offlineModal.innerHTML = 
+        `<h3>Оффлайн доход</h3>
         <p>Вы отсутствовали ${Math.floor(secondsAway)} секунд и заработали ${formatNumber(earned)} монет!</p>
         <button onclick="claimOfflineEarnings(${earned})">Забрать доход</button>
-        <button onclick="closeOfflineModal()">Отмена</button>
-      `;
+        <button onclick="closeOfflineModal()">Отмена</button>`;
       offlineModal.style.display = "block";
     }
     function claimOfflineEarnings(earned) {
@@ -840,9 +799,22 @@
     function closeOfflineModal() {
       document.getElementById("offlineModal").style.display = "none";
     }
-    window.addEventListener("beforeunload", function() {
-      localStorage.setItem("lastTime", Date.now());
-    });
+
+    // Функция обновления рейтинга через Telegram Game Score API
+    function updateTelegramScore() {
+      if(window.Telegram && Telegram.WebApp && Telegram.WebApp.setGameScore) {
+        Telegram.WebApp.setGameScore(coins, true, false)
+          .then(() => {
+            showTemporaryMessage("Рейтинг обновлён!", 2000);
+          })
+          .catch(err => {
+            console.error("Ошибка обновления рейтинга:", err);
+            showTemporaryMessage("Не удалось обновить рейтинг.", 2000);
+          });
+      } else {
+        showTemporaryMessage("Telegram API недоступно.", 2000);
+      }
+    }
   </script>
 </body>
 </html>
