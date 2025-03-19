@@ -256,9 +256,7 @@
   </style>
 </head>
 <body>
-  <!-- Фон задаётся через body -->
-  
-  <!-- Глобальный обработчик необработанных обещаний и функция форматирования -->
+  <!-- Глобальный обработчик ошибок и функция форматирования -->
   <script>
     window.addEventListener("unhandledrejection", function(event) {
       console.error("Unhandled promise rejection:", event.reason);
@@ -266,8 +264,7 @@
     function formatNumber(num) {
       return num.toString().replace(/\B(?=(\d{3})+(?!\d))/g, ".");
     }
-
-    // Функция для не блокирующего временного уведомления
+    // Функция для временного уведомления
     function showTemporaryMessage(msg, duration) {
       let modal = document.getElementById("messageModal");
       modal.innerHTML = `<p id="messageText">${msg}</p>`;
@@ -290,14 +287,12 @@
     <div class="top-center">
       <button class="top-button" onclick="openRating()">Рейтинг</button>
     </div>
-    
     <!-- Счётчик монет и ананас -->
     <div class="counter">
       <img src="assets/Сoin.png" alt="Монета" class="coin-icon">
       <span id="coins">0</span>
     </div>
     <img src="assets/PineApple.png" class="clickable" id="pineapple" alt="Ананас">
-    
     <!-- Футер с кнопками -->
     <div class="footer">
       <div class="bottom-buttons">
@@ -308,7 +303,7 @@
     </div>
   </div>
 
-  <!-- Модальное окно для сообщений (также для информации об авторе и рейтинге) -->
+  <!-- Модальное окно для сообщений -->
   <div class="modal" id="messageModal"></div>
 
   <!-- Модальные окна магазина и улучшений -->
@@ -344,19 +339,23 @@
     <button onclick="closeSkinMenu()">Закрыть</button>
   </div>
 
+  <!-- Модальное окно настроек с экспортом/импортом прогресса -->
   <div class="modal" id="settingsModal">
-    <h3>Настройки музыки</h3>
+    <h3>Настройки музыки и сохранения</h3>
     <p id="musicStatusText">Музыка включена</p>
     <button onclick="toggleMusic()" id="toggleMusicBtn">Выключить музыку</button>
     <div style="margin-top: 15px;">
       <label for="volumeSlider">Громкость: <span id="volumeValue">100%</span></label>
       <input type="range" id="volumeSlider" min="0" max="100" value="100">
     </div>
+    <hr>
+    <button onclick="exportProgress()">Экспортировать прогресс</button>
+    <button onclick="document.getElementById('importFile').click()">Импортировать прогресс</button>
+    <input type="file" id="importFile" accept=".json" style="display:none" onchange="importProgress(event)">
     <button onclick="closeSettingsModal()">Закрыть настройки</button>
   </div>
 
   <div class="modal" id="dailyTaskModal"></div>
-
   <div class="modal" id="offlineModal"></div>
 
   <!-- Фоновая музыка -->
@@ -380,7 +379,7 @@
 
     updateCoins();
 
-    // Функция обновления монет с форматированием
+    // Функция обновления монет и сохранения в localStorage
     function updateCoins() {
       document.getElementById("coins").textContent = formatNumber(Math.floor(coins));
       localStorage.setItem("coins", coins);
@@ -388,9 +387,7 @@
 
     // Функция открытия локального рейтинга
     function openRating() {
-      // Получаем сохранённый рекорд
       let highScore = parseInt(localStorage.getItem("localHighScore")) || 0;
-      // Если текущие монеты больше рекорда, обновляем его
       if (coins > highScore) {
         highScore = coins;
         localStorage.setItem("localHighScore", highScore);
@@ -414,7 +411,6 @@
       musicEnabled = (musicEnabled === "true");
     }
     const bgMusic = document.getElementById("bgMusic");
-
     let musicVolume = localStorage.getItem("musicVolume");
     if (musicVolume === null) {
       musicVolume = 1;
@@ -437,7 +433,7 @@
       }
     }, { once: true });
 
-    // Если устройство iOS, скрываем ползунок громкости и уведомляем пользователя не блокирующим сообщением
+    // На iOS скрываем ползунок громкости
     window.addEventListener("load", function() {
       if (/iPhone|iPad|iPod/i.test(navigator.userAgent)) {
         document.getElementById("volumeSlider").style.display = "none";
@@ -445,23 +441,20 @@
       }
     });
 
-    // Обновление времени при каждом взаимодействии (click и touchstart)
+    // Обновление времени для оффлайн дохода
     function updateLastTime() {
       localStorage.setItem("lastTime", Date.now());
     }
     document.addEventListener('click', updateLastTime);
     document.addEventListener('touchstart', updateLastTime);
-
-    // События закрытия или beforeunload
     window.addEventListener("beforeunload", function() {
       localStorage.setItem("lastTime", Date.now());
     });
-    // Резервное обновление времени каждую минуту
     setInterval(() => {
       localStorage.setItem("lastTime", Date.now());
     }, 60000);
 
-    // Добавляем таймер для обновления прогресса задания "Поиграть 10 минут"
+    // Обновление ежедневных заданий
     setInterval(() => {
       updateDailyTask("playTime", 1);
     }, 1000);
@@ -493,6 +486,7 @@
       });
       localStorage.setItem("dailyTasks", JSON.stringify(tasks));
     }
+    // Обновлённая функция получения награды с сообщением в верхней части окна
     function claimDailyTaskReward(taskId) {
       let tasks = getDailyTasks();
       tasks.forEach(task => {
@@ -500,10 +494,17 @@
           coins += task.reward;
           task.claimed = true;
           updateCoins();
-          showMessage(`Награда ${formatNumber(task.reward)} монет получена за задание "${task.description}"!`);
+          localStorage.setItem("dailyTasks", JSON.stringify(tasks));
+          // Обновляем окно заданий и добавляем сообщение в начало
+          openDailyTaskMenu();
+          let modal = document.getElementById("dailyTaskModal");
+          let message = document.createElement("p");
+          message.style.color = "green";
+          message.style.fontWeight = "bold";
+          message.textContent = `Награда получена! Вы получили ${formatNumber(task.reward)} монет!`;
+          modal.insertBefore(message, modal.firstChild);
         }
       });
-      localStorage.setItem("dailyTasks", JSON.stringify(tasks));
     }
     function openDailyTaskMenu() {
       let tasks = getDailyTasks();
@@ -866,6 +867,60 @@
     }
     function closeOfflineModal() {
       document.getElementById("offlineModal").style.display = "none";
+    }
+
+    // Функции экспорта/импорта прогресса
+    function exportProgress() {
+      const progress = {
+        coins: localStorage.getItem("coins"),
+        passiveLevel: localStorage.getItem("passiveLevel"),
+        clickUpgradeLevel: localStorage.getItem("clickUpgradeLevel"),
+        ownedBackgrounds: localStorage.getItem("ownedBackgrounds"),
+        selectedBackground: localStorage.getItem("selectedBackground"),
+        ownedSkins: localStorage.getItem("ownedSkins"),
+        selectedSkin: localStorage.getItem("selectedSkin"),
+        localHighScore: localStorage.getItem("localHighScore"),
+        lastDailyReset: localStorage.getItem("lastDailyReset"),
+        dailyTasks: localStorage.getItem("dailyTasks"),
+        musicEnabled: localStorage.getItem("musicEnabled"),
+        musicVolume: localStorage.getItem("musicVolume")
+      };
+      const dataStr = JSON.stringify(progress, null, 2);
+      const blob = new Blob([dataStr], { type: "application/json" });
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement("a");
+      a.href = url;
+      a.download = "progress.json";
+      document.body.appendChild(a);
+      a.click();
+      document.body.removeChild(a);
+      URL.revokeObjectURL(url);
+    }
+    function importProgress(event) {
+      const file = event.target.files[0];
+      if (!file) return;
+      const reader = new FileReader();
+      reader.onload = function(e) {
+        try {
+          const importedData = JSON.parse(e.target.result);
+          if(importedData.coins !== undefined) localStorage.setItem("coins", importedData.coins);
+          if(importedData.passiveLevel !== undefined) localStorage.setItem("passiveLevel", importedData.passiveLevel);
+          if(importedData.clickUpgradeLevel !== undefined) localStorage.setItem("clickUpgradeLevel", importedData.clickUpgradeLevel);
+          if(importedData.ownedBackgrounds !== undefined) localStorage.setItem("ownedBackgrounds", importedData.ownedBackgrounds);
+          if(importedData.selectedBackground !== undefined) localStorage.setItem("selectedBackground", importedData.selectedBackground);
+          if(importedData.ownedSkins !== undefined) localStorage.setItem("ownedSkins", importedData.ownedSkins);
+          if(importedData.selectedSkin !== undefined) localStorage.setItem("selectedSkin", importedData.selectedSkin);
+          if(importedData.localHighScore !== undefined) localStorage.setItem("localHighScore", importedData.localHighScore);
+          if(importedData.lastDailyReset !== undefined) localStorage.setItem("lastDailyReset", importedData.lastDailyReset);
+          if(importedData.dailyTasks !== undefined) localStorage.setItem("dailyTasks", importedData.dailyTasks);
+          if(importedData.musicEnabled !== undefined) localStorage.setItem("musicEnabled", importedData.musicEnabled);
+          if(importedData.musicVolume !== undefined) localStorage.setItem("musicVolume", importedData.musicVolume);
+          location.reload();
+        } catch (error) {
+          alert("Ошибка при импорте данных: " + error);
+        }
+      };
+      reader.readAsText(file);
     }
   </script>
 </body>
