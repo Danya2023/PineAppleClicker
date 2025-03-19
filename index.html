@@ -427,6 +427,10 @@
     setInterval(() => {
       localStorage.setItem("lastTime", Date.now());
     }, 60000);
+    
+    setInterval(() => {
+    updateDailyTask("playTime", 1);
+    }, 1000);
 
     // --- Ежедневные задания ---
     function resetDailyTasksIfNeeded() {
