@@ -65,6 +65,12 @@
       top: 10px;
       right: 10px;
     }
+    .top-center {
+      position: absolute;
+      top: 10px;
+      left: 50%;
+      transform: translateX(-50%);
+    }
     .top-button {
       padding: 10px 15px;
       font-size: 14px;
@@ -280,6 +286,10 @@
     <div class="top-right">
       <button class="top-button" onclick="showCreatorInfo()">Об авторе</button>
     </div>
+    <!-- Верхняя центральная кнопка: Рейтинг -->
+    <div class="top-center">
+      <button class="top-button" onclick="openRating()">Рейтинг</button>
+    </div>
     
     <!-- Счётчик монет и ананас -->
     <div class="counter">
@@ -298,7 +308,7 @@
     </div>
   </div>
 
-  <!-- Модальное окно для сообщений (также для информации об авторе) -->
+  <!-- Модальное окно для сообщений (также для информации об авторе и рейтинге) -->
   <div class="modal" id="messageModal"></div>
 
   <!-- Модальные окна магазина и улучшений -->
@@ -374,6 +384,35 @@
     function updateCoins() {
       document.getElementById("coins").textContent = formatNumber(Math.floor(coins));
       localStorage.setItem("coins", coins);
+    }
+
+    // Функция открытия рейтинга с использованием Telegram Game Score API
+    function openRating() {
+      if (window.Telegram && Telegram.WebApp) {
+        // Отправляем текущий счёт в Telegram
+        Telegram.WebApp.setGameScore(coins, true, false);
+        // Получаем таблицу лидеров
+        Telegram.WebApp.getGameHighScores().then(scores => {
+          let html = "<h3>Рейтинг</h3>";
+          if (scores && scores.length > 0) {
+            scores.forEach(score => {
+              html += `<p>${score.user.first_name}: ${formatNumber(score.score)}</p>`;
+            });
+          } else {
+            html += "<p>Нет данных о рейтинге</p>";
+          }
+          html += `<button onclick="closeRating()">Закрыть</button>`;
+          document.getElementById("messageModal").innerHTML = html;
+          document.getElementById("messageModal").style.display = "block";
+        }).catch(err => {
+          showMessage("Ошибка получения рейтинга: " + err);
+        });
+      } else {
+        showMessage("Telegram Web App API недоступен.");
+      }
+    }
+    function closeRating() {
+      document.getElementById("messageModal").style.display = "none";
     }
 
     // Музыкальные настройки
