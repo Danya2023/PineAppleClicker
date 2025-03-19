@@ -5,7 +5,7 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
   <title>Ананас Кликер</title>
   <style>
-    /* Фон задаётся на body */
+    /* Общие стили */
     body {
       margin: 0;
       padding: 0;
@@ -18,7 +18,6 @@
       height: 100vh;
       overflow: hidden;
     }
-    /* Основной контейнер игры */
     .container {
       width: 100vw;
       height: 100vh;
@@ -34,7 +33,6 @@
     html {
       touch-action: manipulation;
     }
-    /* Счётчик */
     .counter {
       font-size: 30px;
       color: #fff;
@@ -49,7 +47,6 @@
       margin-right: 5px;
       vertical-align: middle;
     }
-    /* Кликабельный ананас */
     .clickable {
       width: 250px;
       cursor: pointer;
@@ -59,7 +56,6 @@
     .clickable:hover {
       transform: scale(1.1);
     }
-    /* Верхние кнопки */
     .top-right {
       position: absolute;
       top: 10px;
@@ -100,7 +96,6 @@
     .left-button:hover {
       background-color: #1976D2;
     }
-    /* Футер */
     .footer {
       position: absolute;
       bottom: 20px;
@@ -115,7 +110,6 @@
       display: flex;
       gap: 20px;
     }
-    /* Общий стиль для кнопок */
     button {
       padding: 12px 24px;
       font-size: 16px;
@@ -166,7 +160,6 @@
     .modal button:hover {
       background-color: #45a049;
     }
-    /* Анимация маленьких изображений */
     .mini-pineapple {
       position: absolute;
       width: 40px;
@@ -174,22 +167,37 @@
       transition: transform 1s ease-out, opacity 1s ease-out;
       pointer-events: none;
     }
-    /* Фоны и скины в магазине */
-    .shop-skin,
+    /* Вкладка «Фоны»: оформляем в виде сетки */
+    #backgroundList {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
+      gap: 15px;
+      padding: 10px;
+    }
     .shop-background {
+      width: 150px !important;
+      height: 100px !important;
+      object-fit: cover;
+      border-radius: 10px;
+      box-shadow: 0 2px 5px rgba(0,0,0,0.3);
+      transition: transform 0.3s ease;
+    }
+    .shop-background:hover {
+      transform: scale(1.05);
+    }
+    /* Стили для скинов */
+    .shop-skin {
       width: 100px !important;
       height: 66px !important;
       object-fit: cover;
       border-radius: 10px;
     }
-    /* Иконка информации */
     .info-icon {
       width: 20px;
       height: 20px;
       cursor: pointer;
     }
-    /* Вертикальное расположение элементов (один под другим) */
-    #backgroundList, #skinList {
+    #skinList {
       display: flex;
       flex-direction: column;
       gap: 10px;
@@ -232,7 +240,6 @@
     .daily-task button:hover {
       background: linear-gradient(45deg, #FF8C00, #FFA500);
     }
-    /* Модальное окно оффлайн дохода */
     #offlineModal {
       background: rgba(0,0,0,0.85);
       color: #fff;
@@ -256,7 +263,7 @@
   </style>
 </head>
 <body>
-  <!-- Глобальный обработчик ошибок и функция форматирования -->
+  <!-- Глобальный обработчик ошибок и базовая функция форматирования -->
   <script>
     window.addEventListener("unhandledrejection", function(event) {
       console.error("Unhandled promise rejection:", event.reason);
@@ -264,36 +271,28 @@
     function formatNumber(num) {
       return num.toString().replace(/\B(?=(\d{3})+(?!\d))/g, ".");
     }
-    // Функция для временного уведомления
     function showTemporaryMessage(msg, duration) {
       let modal = document.getElementById("messageModal");
       modal.innerHTML = `<p id="messageText">${msg}</p>`;
       modal.style.display = "block";
-      setTimeout(() => {
-        modal.style.display = "none";
-      }, duration);
+      setTimeout(() => { modal.style.display = "none"; }, duration);
     }
   </script>
 
   <!-- Основной контейнер игры -->
   <div class="container" id="gameContainer">
-    <!-- Верхняя левая кнопка: Настройки -->
     <button class="left-button" onclick="openSettingsModal()">Настройки</button>
-    <!-- Верхняя правая кнопка: Об авторе -->
     <div class="top-right">
       <button class="top-button" onclick="showCreatorInfo()">Об авторе</button>
     </div>
-    <!-- Верхняя центральная кнопка: Рейтинг -->
     <div class="top-center">
       <button class="top-button" onclick="openRating()">Рейтинг</button>
     </div>
-    <!-- Счётчик монет и ананас -->
     <div class="counter">
       <img src="assets/Сoin.png" alt="Монета" class="coin-icon">
       <span id="coins">0</span>
     </div>
     <img src="assets/PineApple.png" class="clickable" id="pineapple" alt="Ананас">
-    <!-- Футер с кнопками -->
     <div class="footer">
       <div class="bottom-buttons">
         <button onclick="openShopMenu()">Магазин</button>
@@ -325,7 +324,7 @@
     <button onclick="closeUpgradeMenu()">Закрыть улучшения</button>
   </div>
 
-  <!-- Меню выбора фонов -->
+  <!-- Меню выбора фонов (обновлённый вид) -->
   <div class="modal" id="backgroundMenu">
     <h3>Выберите фон</h3>
     <div id="backgroundList"></div>
@@ -364,7 +363,7 @@
   </audio>
 
   <script>
-    // Основные переменные игры
+    // Основные переменные
     let coins = parseInt(localStorage.getItem("coins")) || 0;
     let baseClickValue = 1;
     let passiveLevel = parseInt(localStorage.getItem("passiveLevel")) || 0;
@@ -379,13 +378,11 @@
 
     updateCoins();
 
-    // Функция обновления монет и сохранения в localStorage
     function updateCoins() {
       document.getElementById("coins").textContent = formatNumber(Math.floor(coins));
       localStorage.setItem("coins", coins);
     }
 
-    // Функция открытия локального рейтинга
     function openRating() {
       let highScore = parseInt(localStorage.getItem("localHighScore")) || 0;
       if (coins > highScore) {
@@ -402,7 +399,6 @@
       document.getElementById("messageModal").style.display = "none";
     }
 
-    // Музыкальные настройки
     let musicEnabled = localStorage.getItem("musicEnabled");
     if (musicEnabled === null) {
       musicEnabled = true;
@@ -419,21 +415,11 @@
       musicVolume = parseFloat(musicVolume);
     }
     bgMusic.volume = musicVolume;
-    if (musicEnabled) {
-      bgMusic.play().catch(() => {});
-    } else {
-      bgMusic.pause();
-    }
+    if (musicEnabled) { bgMusic.play().catch(() => {}); } else { bgMusic.pause(); }
     document.body.addEventListener('click', function() {
-      if (bgMusic.muted) {
-        bgMusic.muted = false;
-        if (musicEnabled) {
-          bgMusic.play();
-        }
-      }
+      if (bgMusic.muted) { bgMusic.muted = false; if (musicEnabled) bgMusic.play(); }
     }, { once: true });
 
-    // На iOS скрываем ползунок громкости
     window.addEventListener("load", function() {
       if (/iPhone|iPad|iPod/i.test(navigator.userAgent)) {
         document.getElementById("volumeSlider").style.display = "none";
@@ -441,25 +427,13 @@
       }
     });
 
-    // Обновление времени для оффлайн дохода
-    function updateLastTime() {
-      localStorage.setItem("lastTime", Date.now());
-    }
+    function updateLastTime() { localStorage.setItem("lastTime", Date.now()); }
     document.addEventListener('click', updateLastTime);
     document.addEventListener('touchstart', updateLastTime);
-    window.addEventListener("beforeunload", function() {
-      localStorage.setItem("lastTime", Date.now());
-    });
-    setInterval(() => {
-      localStorage.setItem("lastTime", Date.now());
-    }, 60000);
+    window.addEventListener("beforeunload", function() { localStorage.setItem("lastTime", Date.now()); });
+    setInterval(() => { localStorage.setItem("lastTime", Date.now()); }, 60000);
+    setInterval(() => { updateDailyTask("playTime", 1); }, 1000);
 
-    // Обновление ежедневных заданий
-    setInterval(() => {
-      updateDailyTask("playTime", 1);
-    }, 1000);
-
-    // --- Ежедневные задания ---
     function resetDailyTasksIfNeeded() {
       let today = new Date().toISOString().slice(0, 10);
       let lastReset = localStorage.getItem("lastDailyReset");
@@ -486,25 +460,21 @@
       });
       localStorage.setItem("dailyTasks", JSON.stringify(tasks));
     }
-    // Обновлённая функция получения награды с сообщением в верхней части окна
     function claimDailyTaskReward(taskId) {
       let tasks = getDailyTasks();
+      let updated = false;
       tasks.forEach(task => {
         if (task.id === taskId && !task.claimed && task.progress >= task.required) {
           coins += task.reward;
           task.claimed = true;
           updateCoins();
-          localStorage.setItem("dailyTasks", JSON.stringify(tasks));
-          // Обновляем окно заданий и добавляем сообщение в начало
-          openDailyTaskMenu();
-          let modal = document.getElementById("dailyTaskModal");
-          let message = document.createElement("p");
-          message.style.color = "green";
-          message.style.fontWeight = "bold";
-          message.textContent = `Награда получена! Вы получили ${formatNumber(task.reward)} монет!`;
-          modal.insertBefore(message, modal.firstChild);
+          updated = true;
         }
       });
+      if (updated) {
+        localStorage.setItem("dailyTasks", JSON.stringify(tasks));
+        openDailyTaskMenu();
+      }
     }
     function openDailyTaskMenu() {
       let tasks = getDailyTasks();
@@ -515,8 +485,8 @@
           <p>Прогресс: ${formatNumber(task.progress)} / ${formatNumber(task.required)}</p>`;
         if (!task.claimed && task.progress >= task.required) {
           html += `<button onclick="claimDailyTaskReward('${task.id}')">Получить награду</button>`;
-        } else if(task.claimed) {
-          html += `<p>Награда получена</p>`;
+        } else if (task.claimed) {
+          html += `<p style="color:green; font-weight:bold;">Награда получена</p>`;
         }
         html += `</div>`;
       });
@@ -527,18 +497,13 @@
     function closeDailyTaskMenu() {
       document.getElementById("dailyTaskModal").style.display = "none";
     }
-    // --- Конец ежедневных заданий ---
-
-    // Обработка клика по ананасу
     document.getElementById("pineapple").addEventListener("click", function(event) {
       coins += clickValue;
       updateCoins();
       updateDailyTask("clicks", 1);
       this.style.transition = "transform 0.2s ease";
       this.style.transform = "scale(1.2) rotate(10deg)";
-      setTimeout(() => {
-        this.style.transform = "scale(1) rotate(0deg)";
-      }, 200);
+      setTimeout(() => { this.style.transform = "scale(1) rotate(0deg)"; }, 200);
       createPineappleExplosion(event.clientX, event.clientY);
     });
     function createPineappleExplosion(x, y) {
@@ -557,31 +522,16 @@
           miniPineapple.style.transform = `translate(${targetX - x}px, ${targetY - y}px) scale(0.5)`;
           miniPineapple.style.opacity = "0";
         }, 10);
-        setTimeout(() => {
-          miniPineapple.remove();
-        }, 1000);
+        setTimeout(() => { miniPineapple.remove(); }, 1000);
       }
     }
-    setInterval(() => {
-      coins += passiveLevel;
-      updateCoins();
-    }, 1000);
+    setInterval(() => { coins += passiveLevel; updateCoins(); }, 1000);
 
-    // Функции модальных окон магазина и улучшений
-    function openShopMenu() {
-      document.getElementById("shopModal").style.display = "block";
-    }
-    function closeShopMenu() {
-      document.getElementById("shopModal").style.display = "none";
-    }
-    function openUpgradeMenu() {
-      document.getElementById("upgradeModal").style.display = "block";
-    }
-    function closeUpgradeMenu() {
-      document.getElementById("upgradeModal").style.display = "none";
-    }
-    
-    // Функции для работы с фонами
+    function openShopMenu() { document.getElementById("shopModal").style.display = "block"; }
+    function closeShopMenu() { document.getElementById("shopModal").style.display = "none"; }
+    function openUpgradeMenu() { document.getElementById("upgradeModal").style.display = "block"; }
+    function closeUpgradeMenu() { document.getElementById("upgradeModal").style.display = "none"; }
+
     function openBackgroundMenu() {
       closeShopMenu();
       let menu = document.getElementById("backgroundList");
@@ -597,19 +547,13 @@
         bgCard.style.display = "flex";
         bgCard.style.flexDirection = "column";
         bgCard.style.alignItems = "center";
-        
         let img = document.createElement("img");
         img.src = bg.path;
         img.classList.add("shop-background");
-        
         let infoImg = document.createElement("img");
         infoImg.src = "assets/exclamation mark.png";
         infoImg.classList.add("info-icon");
-        infoImg.onclick = function(e) {
-          e.stopPropagation();
-          showMessage(bg.info);
-        };
-
+        infoImg.onclick = function(e) { e.stopPropagation(); showMessage(bg.info); };
         let button = document.createElement("button");
         if (ownedBackgrounds.includes(bg.path)) {
           button.textContent = (selectedBackground === bg.path ? "Выбран" : "Выбрать");
@@ -617,13 +561,9 @@
           button.innerHTML = `Купить за ${formatNumber(bg.price)} <img src="assets/Сoin.png" alt="Монета" style="width:16px; height:16px; vertical-align:middle;">`;
         }
         button.onclick = function() {
-          if (!ownedBackgrounds.includes(bg.path)) {
-            buyBackground(bg.price, bg.path);
-          } else {
-            selectBackground(bg.path);
-          }
+          if (!ownedBackgrounds.includes(bg.path)) { buyBackground(bg.price, bg.path); }
+          else { selectBackground(bg.path); }
         };
-        
         bgCard.appendChild(img);
         bgCard.appendChild(infoImg);
         bgCard.appendChild(button);
@@ -631,9 +571,7 @@
       });
       document.getElementById("backgroundMenu").style.display = "block";
     }
-    function closeBackgroundMenu() {
-      document.getElementById("backgroundMenu").style.display = "none";
-    }
+    function closeBackgroundMenu() { document.getElementById("backgroundMenu").style.display = "none"; }
     function selectBackground(path) {
       selectedBackground = path;
       localStorage.setItem("selectedBackground", selectedBackground);
@@ -647,57 +585,30 @@
         localStorage.setItem("ownedBackgrounds", JSON.stringify(ownedBackgrounds));
         updateCoins();
         openBackgroundMenu();
-      } else {
-        showMessage("Не хватает монет для покупки фона!");
-      }
+      } else { showMessage("Не хватает монет для покупки фона!"); }
     }
-    
-    // Функции для работы со скинами
+
     function openSkinMenu() {
       document.getElementById("shopModal").style.display = "none";
       let menu = document.getElementById("skinList");
       menu.innerHTML = "";
       let skins = [
-        { 
-          price: 1000000, 
-          path: "assets/Skin1.png", 
-          shopPath: "assets/Skin1_locked.png", 
-          lockedPath: "assets/Skin1_locked.png", 
-          info: "Пиксельный ананас" 
-        },
-        { 
-          price: 10000000, 
-          path: "assets/Skin2.png", 
-          shopPath: "assets/Skin2_locked.png", 
-          lockedPath: "assets/Skin2_locked.png", 
-          info: "Ананас в стиле модника, красивый и всегда следит за модой" 
-        },
-        { 
-          price: 100000000, 
-          path: "assets/Skin3.png", 
-          shopPath: "assets/Skin3_locked.png", 
-          lockedPath: "assets/Skin3_locked.png", 
-          info: "Самый редкий скин в игре - золотой ананас, его имеют только 1% из всех игроков" 
-        }
+        { price: 1000000, path: "assets/Skin1.png", shopPath: "assets/Skin1_locked.png", lockedPath: "assets/Skin1_locked.png", info: "Пиксельный ананас" },
+        { price: 10000000, path: "assets/Skin2.png", shopPath: "assets/Skin2_locked.png", lockedPath: "assets/Skin2_locked.png", info: "Ананас в стиле модника, красивый и всегда следит за модой" },
+        { price: 100000000, path: "assets/Skin3.png", shopPath: "assets/Skin3_locked.png", lockedPath: "assets/Skin3_locked.png", info: "Самый редкий скин в игре - золотой ананас, его имеют только 1% из всех игроков" }
       ];
       skins.forEach(skin => {
         let skinCard = document.createElement("div");
         skinCard.style.display = "flex";
         skinCard.style.flexDirection = "column";
         skinCard.style.alignItems = "center";
-        
         let img = document.createElement("img");
         img.src = ownedSkins.includes(skin.path) ? skin.shopPath : skin.lockedPath;
         img.classList.add("shop-skin");
-        
         let infoImg = document.createElement("img");
         infoImg.src = "assets/exclamation mark.png";
         infoImg.classList.add("info-icon");
-        infoImg.onclick = function(e) {
-          e.stopPropagation();
-          showMessage(skin.info);
-        };
-
+        infoImg.onclick = function(e) { e.stopPropagation(); showMessage(skin.info); };
         let button = document.createElement("button");
         if (ownedSkins.includes(skin.path)) {
           button.textContent = (selectedSkin === skin.path ? "Выбран" : "Выбрать");
@@ -705,13 +616,9 @@
           button.innerHTML = `Купить за ${formatNumber(skin.price)} <img src="assets/Сoin.png" alt="Монета" style="width:16px; height:16px; vertical-align:middle;">`;
         }
         button.onclick = function() {
-          if (!ownedSkins.includes(skin.path)) {
-            buySkin(skin.price, skin.path);
-          } else {
-            selectSkin(skin.path);
-          }
+          if (!ownedSkins.includes(skin.path)) { buySkin(skin.price, skin.path); }
+          else { selectSkin(skin.path); }
         };
-        
         skinCard.appendChild(img);
         skinCard.appendChild(infoImg);
         skinCard.appendChild(button);
@@ -719,9 +626,7 @@
       });
       document.getElementById("skinMenu").style.display = "block";
     }
-    function closeSkinMenu() {
-      document.getElementById("skinMenu").style.display = "none";
-    }
+    function closeSkinMenu() { document.getElementById("skinMenu").style.display = "none"; }
     function selectSkin(path) {
       selectedSkin = path;
       localStorage.setItem("selectedSkin", selectedSkin);
@@ -735,12 +640,9 @@
         localStorage.setItem("ownedSkins", JSON.stringify(ownedSkins));
         updateCoins();
         openSkinMenu();
-      } else {
-        showMessage("Не хватает монет для покупки скина!");
-      }
+      } else { showMessage("Не хватает монет для покупки скина!"); }
     }
-    
-    // Функции для улучшений
+
     function buyPassiveUpgrade() {
       let cost = 50 * (passiveLevel + 1);
       if (coins >= cost) {
@@ -749,9 +651,7 @@
         localStorage.setItem("passiveLevel", passiveLevel);
         updateCoins();
         updateUpgradeButtons();
-      } else {
-        showMessage("Не хватает монет для улучшения пассивного дохода!");
-      }
+      } else { showMessage("Не хватает монет для улучшения пассивного дохода!"); }
     }
     function buyClickUpgrade() {
       let cost = 50 * (clickUpgradeLevel + 1);
@@ -762,9 +662,7 @@
         localStorage.setItem("clickUpgradeLevel", clickUpgradeLevel);
         updateCoins();
         updateUpgradeButtons();
-      } else {
-        showMessage("Не хватает монет для улучшения клика!");
-      }
+      } else { showMessage("Не хватает монет для улучшения клика!"); }
     }
     function updateUpgradeButtons() {
       let passiveBtn = document.getElementById("passiveUpgradeBtn");
@@ -780,9 +678,7 @@
                            <button onclick="closeMessage()">Закрыть</button>`;
       modal.style.display = "block";
     }
-    function closeMessage() {
-      document.getElementById("messageModal").style.display = "none";
-    }
+    function closeMessage() { document.getElementById("messageModal").style.display = "none"; }
     function showCreatorInfo() {
       let modal = document.getElementById("messageModal");
       modal.innerHTML = `<h3>Об авторе</h3>
@@ -795,32 +691,18 @@
                          <button onclick="closeMessage()">Закрыть</button>`;
       modal.style.display = "block";
     }
-    function openSettingsModal() {
-      updateMusicStatus();
-      document.getElementById("settingsModal").style.display = "block";
-    }
-    function closeSettingsModal() {
-      document.getElementById("settingsModal").style.display = "none";
-    }
+    function openSettingsModal() { updateMusicStatus(); document.getElementById("settingsModal").style.display = "block"; }
+    function closeSettingsModal() { document.getElementById("settingsModal").style.display = "none"; }
     function updateMusicStatus() {
       const statusText = document.getElementById("musicStatusText");
       const toggleBtn = document.getElementById("toggleMusicBtn");
-      if (musicEnabled) {
-        statusText.textContent = "Музыка включена";
-        toggleBtn.textContent = "Выключить музыку";
-      } else {
-        statusText.textContent = "Музыка выключена";
-        toggleBtn.textContent = "Включить музыку";
-      }
+      if (musicEnabled) { statusText.textContent = "Музыка включена"; toggleBtn.textContent = "Выключить музыку"; }
+      else { statusText.textContent = "Музыка выключена"; toggleBtn.textContent = "Включить музыку"; }
     }
     function toggleMusic() {
       musicEnabled = !musicEnabled;
       localStorage.setItem("musicEnabled", musicEnabled ? "true" : "false");
-      if (musicEnabled) {
-        bgMusic.play();
-      } else {
-        bgMusic.pause();
-      }
+      if (musicEnabled) { bgMusic.play(); } else { bgMusic.pause(); }
       updateMusicStatus();
     }
     document.getElementById("volumeSlider").addEventListener("input", function() {
@@ -843,9 +725,7 @@
         const timeDifference = Date.now() - parseInt(lastTime);
         const secondsAway = Math.floor(timeDifference / 1000);
         const offlineCoins = secondsAway * passiveLevel;
-        if (offlineCoins > 0) {
-          showOfflineEarnings(offlineCoins);
-        }
+        if (offlineCoins > 0) { showOfflineEarnings(offlineCoins); }
       }
     });
     function showOfflineEarnings(earned) {
@@ -865,11 +745,9 @@
       showMessage(`Вы получили ${formatNumber(earned)} монет за оффлайн время!`);
       localStorage.setItem("lastTime", Date.now());
     }
-    function closeOfflineModal() {
-      document.getElementById("offlineModal").style.display = "none";
-    }
+    function closeOfflineModal() { document.getElementById("offlineModal").style.display = "none"; }
 
-    // Функции экспорта/импорта прогресса
+    // Экспорт и импорт прогресса
     function exportProgress() {
       const progress = {
         coins: localStorage.getItem("coins"),
@@ -895,6 +773,7 @@
       a.click();
       document.body.removeChild(a);
       URL.revokeObjectURL(url);
+      alert("Прогресс сохранен! Ваш текущий счет: " + formatNumber(coins) + " монет.");
     }
     function importProgress(event) {
       const file = event.target.files[0];
