@@ -386,27 +386,53 @@
       localStorage.setItem("coins", coins);
     }
 
+    // Функция проверки наличия Telegram Web App API (для отладки)
+    function checkTelegramAPI() {
+      if (window.Telegram && Telegram.WebApp) {
+        console.log("Telegram WebApp API доступен.");
+        if (typeof Telegram.WebApp.setGameScore === "function") {
+          console.log("Метод setGameScore доступен.");
+        } else {
+          console.warn("Метод setGameScore недоступен.");
+        }
+        if (typeof Telegram.WebApp.getGameHighScores === "function") {
+          console.log("Метод getGameHighScores доступен.");
+        } else {
+          console.warn("Метод getGameHighScores недоступен.");
+        }
+      } else {
+        console.warn("Telegram WebApp API недоступен.");
+      }
+    }
+    // Запуск проверки сразу после загрузки скрипта
+    checkTelegramAPI();
+
     // Функция открытия рейтинга с использованием Telegram Game Score API
     function openRating() {
       if (window.Telegram && Telegram.WebApp) {
-        // Отправляем текущий счёт в Telegram
-        Telegram.WebApp.setGameScore(coins, true, false);
-        // Получаем таблицу лидеров
-        Telegram.WebApp.getGameHighScores().then(scores => {
-          let html = "<h3>Рейтинг</h3>";
-          if (scores && scores.length > 0) {
-            scores.forEach(score => {
-              html += `<p>${score.user.first_name}: ${formatNumber(score.score)}</p>`;
-            });
-          } else {
-            html += "<p>Нет данных о рейтинге</p>";
-          }
-          html += `<button onclick="closeRating()">Закрыть</button>`;
-          document.getElementById("messageModal").innerHTML = html;
-          document.getElementById("messageModal").style.display = "block";
-        }).catch(err => {
-          showMessage("Ошибка получения рейтинга: " + err);
-        });
+        if (typeof Telegram.WebApp.setGameScore === "function" && typeof Telegram.WebApp.getGameHighScores === "function") {
+          console.log("Отправка текущего счёта:", coins);
+          Telegram.WebApp.setGameScore(coins, true, false);
+          Telegram.WebApp.getGameHighScores().then(scores => {
+            let html = "<h3>Рейтинг</h3>";
+            if (scores && scores.length > 0) {
+              scores.forEach(score => {
+                html += `<p>${score.user.first_name}: ${formatNumber(score.score)}</p>`;
+              });
+            } else {
+              html += "<p>Нет данных о рейтинге</p>";
+            }
+            html += `<button onclick="closeRating()">Закрыть</button>`;
+            document.getElementById("messageModal").innerHTML = html;
+            document.getElementById("messageModal").style.display = "block";
+          }).catch(err => {
+            console.error("Ошибка получения рейтинга:", err);
+            showMessage("Ошибка получения рейтинга: " + err);
+          });
+        } else {
+          console.warn("Методы рейтинга недоступны в Telegram WebApp API.");
+          showMessage("Методы рейтинга недоступны в Telegram WebApp API.");
+        }
       } else {
         showMessage("Telegram Web App API недоступен.");
       }
