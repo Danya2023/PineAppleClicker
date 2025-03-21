@@ -4,6 +4,8 @@
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
   <title>Ананас Кликер</title>
+  <!-- Подключение библиотеки CryptoJS для шифрования -->
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/crypto-js/4.1.1/crypto-js.min.js"></script>
   <style>
     /* Общие стили */
     body {
@@ -136,6 +138,29 @@
     .daily-button:hover {
       background: linear-gradient(45deg, #FF8C00, #FFA500);
     }
+    /* Шкала уровня */
+    #levelContainer {
+      text-align: center;
+      color: #fff;
+      margin-bottom: 20px;
+    }
+    #levelContainer div {
+      margin: 5px 0;
+    }
+    #levelBar {
+      width: 200px;
+      height: 10px;
+      background: #555;
+      border-radius: 5px;
+      overflow: hidden;
+      margin: 0 auto;
+    }
+    #levelProgress {
+      width: 0%;
+      height: 100%;
+      background: #4CAF50;
+      transition: width 0.5s ease, background 0.5s ease;
+    }
     /* Модальные окна */
     .modal {
       display: none;
@@ -186,21 +211,24 @@
       transform: scale(1.05);
     }
     /* Стили для скинов */
-    .shop-skin {
-      width: 100px !important;
-      height: 66px !important;
-      object-fit: cover;
-      border-radius: 10px;
-    }
+.shop-skin {
+  width: 80px !important;
+  height: auto !important;
+  object-fit: contain;
+  border-radius: 10px;
+}
+
     .info-icon {
       width: 20px;
       height: 20px;
       cursor: pointer;
     }
+    /* Меню скинов теперь оформлено как сетка, как фоны */
     #skinList {
-      display: flex;
-      flex-direction: column;
-      gap: 10px;
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
+      gap: 15px;
+      padding: 10px;
     }
     /* Ежедневные задания */
     #dailyTaskModal {
@@ -240,6 +268,10 @@
     .daily-task button:hover {
       background: linear-gradient(45deg, #FF8C00, #FFA500);
     }
+    #dailyResetTimer {
+      margin-top: 10px;
+      color: #777;
+    }
     #offlineModal {
       background: rgba(0,0,0,0.85);
       color: #fff;
@@ -277,6 +309,13 @@
       modal.style.display = "block";
       setTimeout(() => { modal.style.display = "none"; }, duration);
     }
+    // Функция для форматирования времени (часы, минуты, секунды)
+    function formatTime(totalSeconds) {
+      let hrs = Math.floor(totalSeconds / 3600);
+      let mins = Math.floor((totalSeconds % 3600) / 60);
+      let secs = totalSeconds % 60;
+      return `${hrs} ч ${mins} м ${secs} с`;
+    }
   </script>
 
   <!-- Основной контейнер игры -->
@@ -288,6 +327,15 @@
     <div class="top-center">
       <button class="top-button" onclick="openRating()">Рейтинг</button>
     </div>
+
+    <!-- Шкала уровня -->
+    <div id="levelContainer">
+      <div>Уровень: <span id="levelDisplay">1</span></div>
+      <div id="levelBar">
+        <div id="levelProgress"></div>
+      </div>
+    </div>
+
     <div class="counter">
       <img src="assets/Сoin.png" alt="Монета" class="coin-icon">
       <span id="coins">0</span>
@@ -363,34 +411,75 @@
   </audio>
 
   <script>
-    // Основные переменные
+    // Глобальные переменные
     let coins = parseInt(localStorage.getItem("coins")) || 0;
     let baseClickValue = 1;
     let passiveLevel = parseInt(localStorage.getItem("passiveLevel")) || 0;
     let clickUpgradeLevel = parseInt(localStorage.getItem("clickUpgradeLevel")) || 0;
     let clickValue = baseClickValue + clickUpgradeLevel;
-    
+
     let ownedBackgrounds = JSON.parse(localStorage.getItem("ownedBackgrounds")) || ["assets/Fon.png"];
     let selectedBackground = localStorage.getItem("selectedBackground") || "assets/Fon.png";
-        
+
+    // Если данные по скинам отсутствуют, задаём значения по умолчанию
     let ownedSkins = JSON.parse(localStorage.getItem("ownedSkins")) || ["assets/PineApple.png"];
     let selectedSkin = localStorage.getItem("selectedSkin") || "assets/PineApple.png";
 
+    // Новые переменные для уровней
+    let level = parseInt(localStorage.getItem("level")) || 1;
+    let dailyLevelUpClaimed = localStorage.getItem("dailyLevelUpClaimed");
+    if(dailyLevelUpClaimed === null) {
+      dailyLevelUpClaimed = false;
+    } else {
+      dailyLevelUpClaimed = (dailyLevelUpClaimed === "true");
+    }
+
+    // Переменные для подсчёта общего времени игры
+    let totalPlayTime = parseInt(localStorage.getItem("totalPlayTime")) || 0; // в секундах
+    let sessionStart = Date.now(); // время начала текущей сессии
+
     updateCoins();
+    updateLevelDisplay();
 
     function updateCoins() {
       document.getElementById("coins").textContent = formatNumber(Math.floor(coins));
       localStorage.setItem("coins", coins);
     }
 
+    function updateLevelDisplay() {
+      document.getElementById("levelDisplay").textContent = level;
+      updateLevelProgress();
+    }
+
+    // Изменённая функция обновления шкалы уровня:
+    // Если dailyLevelUpClaimed = true, шкала становится пустой и серой, иначе – заполняется зелёным по прогрессу заданий
+    function updateLevelProgress() {
+      const levelProgress = document.getElementById("levelProgress");
+      if (dailyLevelUpClaimed) {
+        levelProgress.style.width = "0%";
+        levelProgress.style.background = "#aaa"; // серый цвет
+      } else {
+        let tasks = getDailyTasks();
+        let claimedCount = tasks.filter(task => task.claimed).length;
+        let progressPercent = (claimedCount / 2) * 100;
+        levelProgress.style.width = progressPercent + "%";
+        levelProgress.style.background = "#4CAF50";
+      }
+    }
+
+    // Функция рейтинга, показывающая уровень и общее время игры
     function openRating() {
       let highScore = parseInt(localStorage.getItem("localHighScore")) || 0;
       if (coins > highScore) {
         highScore = coins;
         localStorage.setItem("localHighScore", highScore);
       }
+      let currentSessionTime = Math.floor((Date.now() - sessionStart) / 1000);
+      let totalTime = totalPlayTime + currentSessionTime;
       let html = `<h3>Личный рекорд</h3>
                   <p>Ваш рекорд: ${formatNumber(highScore)}</p>
+                  <p>Уровень: ${level}</p>
+                  <p>Общее время игры: ${formatTime(totalTime)}</p>
                   <button onclick="closeRating()">Закрыть</button>`;
       document.getElementById("messageModal").innerHTML = html;
       document.getElementById("messageModal").style.display = "block";
@@ -421,6 +510,26 @@
     }, { once: true });
 
     window.addEventListener("load", function() {
+      // Настройка интерфейса
+      document.getElementById("gameContainer").style.backgroundImage = `url('${selectedBackground}')`;
+      document.getElementById("pineapple").src = selectedSkin;
+      updateUpgradeButtons();
+      const volumeSlider = document.getElementById("volumeSlider");
+      volumeSlider.value = bgMusic.volume * 100;
+      document.getElementById("volumeValue").textContent = `${volumeSlider.value}%`;
+      updateLevelDisplay();
+
+      // Проверка оффлайн дохода
+      const lastTime = localStorage.getItem("lastTime");
+      if (lastTime) {
+        const timeDifference = Date.now() - parseInt(lastTime);
+        const secondsAway = Math.floor(timeDifference / 1000);
+        const offlineCoins = secondsAway * passiveLevel;
+        if (offlineCoins > 0) { showOfflineEarnings(offlineCoins); }
+      }
+    });
+
+    window.addEventListener("load", function() {
       if (/iPhone|iPad|iPod/i.test(navigator.userAgent)) {
         document.getElementById("volumeSlider").style.display = "none";
         showTemporaryMessage("Регулировка громкости недоступна на iOS. Используйте системные средства управления громкостью.", 3000);
@@ -430,20 +539,28 @@
     function updateLastTime() { localStorage.setItem("lastTime", Date.now()); }
     document.addEventListener('click', updateLastTime);
     document.addEventListener('touchstart', updateLastTime);
-    window.addEventListener("beforeunload", function() { localStorage.setItem("lastTime", Date.now()); });
+    window.addEventListener("beforeunload", function() {
+      let sessionTime = Math.floor((Date.now() - sessionStart) / 1000);
+      totalPlayTime += sessionTime;
+      localStorage.setItem("totalPlayTime", totalPlayTime);
+      localStorage.setItem("lastTime", Date.now());
+    });
     setInterval(() => { localStorage.setItem("lastTime", Date.now()); }, 60000);
-    setInterval(() => { updateDailyTask("playTime", 1); }, 1000);
+    setInterval(() => { updateDailyTask("playTime", 1); updateLevelProgress(); }, 1000);
 
+    // Сброс ежедневных заданий через 24 часа с момента последнего сброса
     function resetDailyTasksIfNeeded() {
-      let today = new Date().toISOString().slice(0, 10);
-      let lastReset = localStorage.getItem("lastDailyReset");
-      if (lastReset !== today) {
+      let now = Date.now();
+      let lastResetTime = localStorage.getItem("lastDailyResetTime");
+      if (!lastResetTime || now - parseInt(lastResetTime) >= 86400000) {
         let dailyTasks = [
           { id: "clicks", description: "Накликать 1000 раз", required: 1000, reward: 5000, progress: 0, claimed: false },
           { id: "playTime", description: "Поиграть 10 минут", required: 600, reward: 3000, progress: 0, claimed: false }
         ];
         localStorage.setItem("dailyTasks", JSON.stringify(dailyTasks));
-        localStorage.setItem("lastDailyReset", today);
+        localStorage.setItem("lastDailyResetTime", now.toString());
+        localStorage.setItem("dailyLevelUpClaimed", "false");
+        dailyLevelUpClaimed = false;
       }
     }
     function getDailyTasks() {
@@ -459,6 +576,7 @@
         }
       });
       localStorage.setItem("dailyTasks", JSON.stringify(tasks));
+      updateLevelProgress();
     }
     function claimDailyTaskReward(taskId) {
       let tasks = getDailyTasks();
@@ -490,13 +608,62 @@
         }
         html += `</div>`;
       });
+      // Если все задания выполнены и награда за уровень еще не получена, показываем кнопку
+      if (tasks.every(task => task.claimed) && !dailyLevelUpClaimed) {
+        html += `<button id="levelUpBtn" onclick="levelUp()">Получить уровень (+100к монет)</button>`;
+      }
+      // Добавляем таймер до сброса заданий
+      html += `<p id="dailyResetTimer"></p>`;
       html += `<button onclick="closeDailyTaskMenu()">Закрыть</button>`;
       document.getElementById("dailyTaskModal").innerHTML = html;
       document.getElementById("dailyTaskModal").style.display = "block";
+      startDailyResetTimer();
     }
     function closeDailyTaskMenu() {
       document.getElementById("dailyTaskModal").style.display = "none";
     }
+    // Функция получения уровня – изменения: не сбрасываем ежедневные задания
+    function levelUp() {
+      if (dailyLevelUpClaimed) return;
+      let btn = document.getElementById("levelUpBtn");
+      if (btn) { btn.disabled = true; }
+      // Анимация: временно делаем прогресс-бар полным, затем обновляем уровень и сбрасываем его в пустой (серый) вид
+      document.getElementById("levelProgress").style.width = "100%";
+      setTimeout(() => {
+        level++;
+        coins += 100000;
+        localStorage.setItem("level", level);
+        dailyLevelUpClaimed = true;
+        localStorage.setItem("dailyLevelUpClaimed", "true");
+        updateLevelDisplay();
+        updateCoins();
+        showTemporaryMessage("Поздравляем! Вы получили новый уровень!", 2000);
+        closeDailyTaskMenu();
+      }, 500);
+    }
+    // Таймер до сброса заданий (24 часа от времени последнего сброса)
+    function startDailyResetTimer() {
+      let now = Date.now();
+      let lastResetTime = localStorage.getItem("lastDailyResetTime") || now;
+      let nextReset = parseInt(lastResetTime) + 86400000;
+      let remainingTime = nextReset - now;
+      if (remainingTime < 0) remainingTime = 0;
+      function updateTimer() {
+        let hours = Math.floor(remainingTime / (1000 * 60 * 60));
+        let minutes = Math.floor((remainingTime % (1000 * 60 * 60)) / (1000 * 60));
+        let seconds = Math.floor((remainingTime % (1000 * 60)) / 1000);
+        let timerElement = document.getElementById("dailyResetTimer");
+        if (timerElement) {
+          timerElement.textContent = `Обновление через: ${hours}ч ${minutes}м ${seconds}с`;
+        }
+        remainingTime -= 1000;
+        if (remainingTime >= 0) {
+          setTimeout(updateTimer, 1000);
+        }
+      }
+      updateTimer();
+    }
+
     document.getElementById("pineapple").addEventListener("click", function(event) {
       coins += clickValue;
       updateCoins();
@@ -555,15 +722,20 @@
         infoImg.classList.add("info-icon");
         infoImg.onclick = function(e) { e.stopPropagation(); showMessage(bg.info); };
         let button = document.createElement("button");
-        if (ownedBackgrounds.includes(bg.path)) {
-          button.textContent = (selectedBackground === bg.path ? "Выбран" : "Выбрать");
+        if(bg.path === "assets/FonShop4.png" && level < 20) {
+          button.textContent = "Требуется 20 уровень";
+          button.onclick = function() { showMessage("Достигните 20 уровня, чтобы купить этот фон!"); };
         } else {
-          button.innerHTML = `Купить за ${formatNumber(bg.price)} <img src="assets/Сoin.png" alt="Монета" style="width:16px; height:16px; vertical-align:middle;">`;
+          if (ownedBackgrounds.includes(bg.path)) {
+            button.textContent = (selectedBackground === bg.path ? "Выбран" : "Выбрать");
+          } else {
+            button.innerHTML = `Купить за ${formatNumber(bg.price)} <img src="assets/Сoin.png" alt="Монета" style="width:16px; height:16px; vertical-align:middle;">`;
+          }
+          button.onclick = function() {
+            if (!ownedBackgrounds.includes(bg.path)) { buyBackground(bg.price, bg.path); }
+            else { selectBackground(bg.path); }
+          };
         }
-        button.onclick = function() {
-          if (!ownedBackgrounds.includes(bg.path)) { buyBackground(bg.price, bg.path); }
-          else { selectBackground(bg.path); }
-        };
         bgCard.appendChild(img);
         bgCard.appendChild(infoImg);
         bgCard.appendChild(button);
@@ -595,7 +767,7 @@
       let skins = [
         { price: 1000000, path: "assets/Skin1.png", shopPath: "assets/Skin1_locked.png", lockedPath: "assets/Skin1_locked.png", info: "Пиксельный ананас" },
         { price: 10000000, path: "assets/Skin2.png", shopPath: "assets/Skin2_locked.png", lockedPath: "assets/Skin2_locked.png", info: "Ананас в стиле модника, красивый и всегда следит за модой" },
-        { price: 100000000, path: "assets/Skin3.png", shopPath: "assets/Skin3_locked.png", lockedPath: "assets/Skin3_locked.png", info: "Самый редкий скин в игре - золотой ананас, его имеют только 1% из всех игроков" }
+        { price: 100000000, path: "assets/Skin3.png", shopPath: "assets/Skin3.png", lockedPath: "assets/Skin3_locked.png", info: "Самый редкий скин в игре - золотой ананас, его имеют только 1% из всех игроков" }
       ];
       skins.forEach(skin => {
         let skinCard = document.createElement("div");
@@ -603,22 +775,27 @@
         skinCard.style.flexDirection = "column";
         skinCard.style.alignItems = "center";
         let img = document.createElement("img");
-        img.src = ownedSkins.includes(skin.path) ? skin.shopPath : skin.lockedPath;
+        img.src = ownedSkins.includes(skin.path) ? skin.path : skin.lockedPath;
         img.classList.add("shop-skin");
         let infoImg = document.createElement("img");
         infoImg.src = "assets/exclamation mark.png";
         infoImg.classList.add("info-icon");
         infoImg.onclick = function(e) { e.stopPropagation(); showMessage(skin.info); };
         let button = document.createElement("button");
-        if (ownedSkins.includes(skin.path)) {
-          button.textContent = (selectedSkin === skin.path ? "Выбран" : "Выбрать");
+        if(skin.path === "assets/Skin3.png" && level < 20) {
+          button.textContent = "Требуется 20 уровень";
+          button.onclick = function() { showMessage("Достигните 20 уровня, чтобы купить этот скин!"); };
         } else {
-          button.innerHTML = `Купить за ${formatNumber(skin.price)} <img src="assets/Сoin.png" alt="Монета" style="width:16px; height:16px; vertical-align:middle;">`;
+          if (ownedSkins.includes(skin.path)) {
+            button.textContent = (selectedSkin === skin.path ? "Выбран" : "Выбрать");
+          } else {
+            button.innerHTML = `Купить за ${formatNumber(skin.price)} <img src="assets/Сoin.png" alt="Монета" style="width:16px; height:16px; vertical-align:middle;">`;
+          }
+          button.onclick = function() {
+            if (!ownedSkins.includes(skin.path)) { buySkin(skin.price, skin.path); }
+            else { selectSkin(skin.path); }
+          };
         }
-        button.onclick = function() {
-          if (!ownedSkins.includes(skin.path)) { buySkin(skin.price, skin.path); }
-          else { selectSkin(skin.path); }
-        };
         skinCard.appendChild(img);
         skinCard.appendChild(infoImg);
         skinCard.appendChild(button);
@@ -711,23 +888,82 @@
       localStorage.setItem("musicVolume", volume);
       document.getElementById("volumeValue").textContent = `${this.value}%`;
     });
-    window.addEventListener("load", function() {
-      document.getElementById("gameContainer").style.backgroundImage = `url('${selectedBackground}')`;
-      document.getElementById("pineapple").src = selectedSkin;
-      updateUpgradeButtons();
-      const volumeSlider = document.getElementById("volumeSlider");
-      volumeSlider.value = bgMusic.volume * 100;
-      document.getElementById("volumeValue").textContent = `${volumeSlider.value}%`;
-    });
-    window.addEventListener("load", function() {
-      const lastTime = localStorage.getItem("lastTime");
-      if (lastTime) {
-        const timeDifference = Date.now() - parseInt(lastTime);
-        const secondsAway = Math.floor(timeDifference / 1000);
-        const offlineCoins = secondsAway * passiveLevel;
-        if (offlineCoins > 0) { showOfflineEarnings(offlineCoins); }
-      }
-    });
+
+    // Экспорт и импорт прогресса с шифрованием и проверкой секретного ключа
+    const SECRET_KEY = "mySuperSecretKey123";
+    function exportProgress() {
+      const progress = {
+        coins: localStorage.getItem("coins"),
+        passiveLevel: localStorage.getItem("passiveLevel"),
+        clickUpgradeLevel: localStorage.getItem("clickUpgradeLevel"),
+        ownedBackgrounds: localStorage.getItem("ownedBackgrounds"),
+        selectedBackground: localStorage.getItem("selectedBackground"),
+        ownedSkins: localStorage.getItem("ownedSkins"),
+        selectedSkin: localStorage.getItem("selectedSkin"),
+        localHighScore: localStorage.getItem("localHighScore"),
+        lastDailyReset: localStorage.getItem("lastDailyResetTime"),
+        dailyTasks: localStorage.getItem("dailyTasks"),
+        musicEnabled: localStorage.getItem("musicEnabled"),
+        musicVolume: localStorage.getItem("musicVolume"),
+        level: localStorage.getItem("level"),
+        dailyLevelUpClaimed: localStorage.getItem("dailyLevelUpClaimed"),
+        totalPlayTime: localStorage.getItem("totalPlayTime")
+      };
+      const dataStr = JSON.stringify(progress, null, 2);
+      const encrypted = CryptoJS.AES.encrypt(dataStr, SECRET_KEY).toString();
+      const blob = new Blob([encrypted], { type: "text/plain" });
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement("a");
+      a.href = url;
+      a.download = "progress.json";
+      document.body.appendChild(a);
+      a.click();
+      document.body.removeChild(a);
+      URL.revokeObjectURL(url);
+      alert("Прогресс сохранен! Ваш текущий счет: " + formatNumber(coins) + " монет.");
+    }
+    function importProgress(event) {
+      const file = event.target.files[0];
+      if (!file) return;
+      const reader = new FileReader();
+      reader.onload = function(e) {
+        try {
+          const decrypted = CryptoJS.AES.decrypt(e.target.result, SECRET_KEY).toString(CryptoJS.enc.Utf8);
+          if (!decrypted) {
+            throw new Error("Неверный секретный ключ или файл был изменён.");
+          }
+          const importedData = JSON.parse(decrypted);
+          if(importedData.coins !== undefined) localStorage.setItem("coins", importedData.coins);
+          if(importedData.passiveLevel !== undefined) localStorage.setItem("passiveLevel", importedData.passiveLevel);
+          if(importedData.clickUpgradeLevel !== undefined) localStorage.setItem("clickUpgradeLevel", importedData.clickUpgradeLevel);
+          if(importedData.ownedBackgrounds !== undefined) localStorage.setItem("ownedBackgrounds", importedData.ownedBackgrounds);
+          if(importedData.selectedBackground !== undefined) localStorage.setItem("selectedBackground", importedData.selectedBackground);
+          if(importedData.ownedSkins != null && Array.isArray(importedData.ownedSkins) && importedData.ownedSkins.length > 0) {
+            localStorage.setItem("ownedSkins", JSON.stringify(importedData.ownedSkins));
+          } else {
+            localStorage.setItem("ownedSkins", JSON.stringify(["assets/PineApple.png"]));
+          }
+          if(importedData.selectedSkin != null && importedData.selectedSkin !== "") {
+            localStorage.setItem("selectedSkin", importedData.selectedSkin);
+          } else {
+            localStorage.setItem("selectedSkin", "assets/PineApple.png");
+          }
+          if(importedData.localHighScore !== undefined) localStorage.setItem("localHighScore", importedData.localHighScore);
+          if(importedData.lastDailyReset !== undefined) localStorage.setItem("lastDailyResetTime", importedData.lastDailyReset);
+          if(importedData.dailyTasks !== undefined) localStorage.setItem("dailyTasks", importedData.dailyTasks);
+          if(importedData.musicEnabled !== undefined) localStorage.setItem("musicEnabled", importedData.musicEnabled);
+          if(importedData.musicVolume !== undefined) localStorage.setItem("musicVolume", importedData.musicVolume);
+          if(importedData.level !== undefined) localStorage.setItem("level", importedData.level);
+          if(importedData.dailyLevelUpClaimed !== undefined) localStorage.setItem("dailyLevelUpClaimed", importedData.dailyLevelUpClaimed);
+          if(importedData.totalPlayTime !== undefined) localStorage.setItem("totalPlayTime", importedData.totalPlayTime);
+          location.reload();
+        } catch (error) {
+          alert("Ошибка при импорте данных: " + error);
+        }
+      };
+      reader.readAsText(file);
+    }
+    
     function showOfflineEarnings(earned) {
       let offlineModal = document.getElementById("offlineModal");
       let secondsAway = passiveLevel > 0 ? earned / passiveLevel : 0;
@@ -746,61 +982,6 @@
       localStorage.setItem("lastTime", Date.now());
     }
     function closeOfflineModal() { document.getElementById("offlineModal").style.display = "none"; }
-
-    // Экспорт и импорт прогресса
-    function exportProgress() {
-      const progress = {
-        coins: localStorage.getItem("coins"),
-        passiveLevel: localStorage.getItem("passiveLevel"),
-        clickUpgradeLevel: localStorage.getItem("clickUpgradeLevel"),
-        ownedBackgrounds: localStorage.getItem("ownedBackgrounds"),
-        selectedBackground: localStorage.getItem("selectedBackground"),
-        ownedSkins: localStorage.getItem("ownedSkins"),
-        selectedSkin: localStorage.getItem("selectedSkin"),
-        localHighScore: localStorage.getItem("localHighScore"),
-        lastDailyReset: localStorage.getItem("lastDailyReset"),
-        dailyTasks: localStorage.getItem("dailyTasks"),
-        musicEnabled: localStorage.getItem("musicEnabled"),
-        musicVolume: localStorage.getItem("musicVolume")
-      };
-      const dataStr = JSON.stringify(progress, null, 2);
-      const blob = new Blob([dataStr], { type: "application/json" });
-      const url = URL.createObjectURL(blob);
-      const a = document.createElement("a");
-      a.href = url;
-      a.download = "progress.json";
-      document.body.appendChild(a);
-      a.click();
-      document.body.removeChild(a);
-      URL.revokeObjectURL(url);
-      alert("Прогресс сохранен! Ваш текущий счет: " + formatNumber(coins) + " монет.");
-    }
-    function importProgress(event) {
-      const file = event.target.files[0];
-      if (!file) return;
-      const reader = new FileReader();
-      reader.onload = function(e) {
-        try {
-          const importedData = JSON.parse(e.target.result);
-          if(importedData.coins !== undefined) localStorage.setItem("coins", importedData.coins);
-          if(importedData.passiveLevel !== undefined) localStorage.setItem("passiveLevel", importedData.passiveLevel);
-          if(importedData.clickUpgradeLevel !== undefined) localStorage.setItem("clickUpgradeLevel", importedData.clickUpgradeLevel);
-          if(importedData.ownedBackgrounds !== undefined) localStorage.setItem("ownedBackgrounds", importedData.ownedBackgrounds);
-          if(importedData.selectedBackground !== undefined) localStorage.setItem("selectedBackground", importedData.selectedBackground);
-          if(importedData.ownedSkins !== undefined) localStorage.setItem("ownedSkins", importedData.ownedSkins);
-          if(importedData.selectedSkin !== undefined) localStorage.setItem("selectedSkin", importedData.selectedSkin);
-          if(importedData.localHighScore !== undefined) localStorage.setItem("localHighScore", importedData.localHighScore);
-          if(importedData.lastDailyReset !== undefined) localStorage.setItem("lastDailyReset", importedData.lastDailyReset);
-          if(importedData.dailyTasks !== undefined) localStorage.setItem("dailyTasks", importedData.dailyTasks);
-          if(importedData.musicEnabled !== undefined) localStorage.setItem("musicEnabled", importedData.musicEnabled);
-          if(importedData.musicVolume !== undefined) localStorage.setItem("musicVolume", importedData.musicVolume);
-          location.reload();
-        } catch (error) {
-          alert("Ошибка при импорте данных: " + error);
-        }
-      };
-      reader.readAsText(file);
-    }
   </script>
 </body>
 </html>
