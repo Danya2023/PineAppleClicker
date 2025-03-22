@@ -291,6 +291,30 @@
       color: #fff;
       cursor: pointer;
     }
+    /* Эффект для бустера */
+    .booster-active {
+      animation: shimmer 1s infinite;
+    }
+    @keyframes shimmer {
+      0% { filter: brightness(1); }
+      50% { filter: brightness(1.5); }
+      100% { filter: brightness(1); }
+    }
+    /* Стили для промокодов */
+    .promo-container {
+      margin-top: 15px;
+      text-align: left;
+    }
+    .promo-container input {
+      width: 80%;
+      padding: 5px;
+      margin-bottom: 5px;
+      font-size: 14px;
+    }
+    .promo-container button {
+      font-size: 14px;
+      padding: 5px 10px;
+    }
   </style>
 </head>
 <body>
@@ -367,11 +391,12 @@
     <div style="margin-bottom: 15px;">
       <button id="passiveUpgradeBtn" onclick="buyPassiveUpgrade()">Улучшить пассивный доход</button>
       <button id="clickUpgradeBtn" onclick="buyClickUpgrade()">Улучшить клик</button>
+      <button id="boosterUpgradeBtn" onclick="activateBooster()">Ускорение</button>
     </div>
     <button onclick="closeUpgradeMenu()">Закрыть улучшения</button>
   </div>
 
-  <!-- Меню выбора фонов (обновлённый вид) -->
+  <!-- Меню выбора фонов -->
   <div class="modal" id="backgroundMenu">
     <h3>Выберите фон</h3>
     <div id="backgroundList"></div>
@@ -399,6 +424,23 @@
     <button onclick="document.getElementById('importFile').click()">Импортировать прогресс</button>
     <input type="file" id="importFile" accept=".json" style="display:none" onchange="importProgress(event)">
     <button onclick="closeSettingsModal()">Закрыть настройки</button>
+  </div>
+
+  <!-- Промокоды и информация об игре (об авторе) -->
+  <div class="modal" id="creatorModal">
+    <h3>Об авторе</h3>
+    <p>Создатель игры: ананасик версия 1.0</p>
+    <div style="margin-top:10px;">
+      <a href="https://www.youtube.com/@AnanasicChickenGun" target="_blank">
+        <img src="assets/youtube.png" alt="YouTube" style="width:50px; height:50px;">
+      </a>
+    </div>
+    <!-- Форма ввода промокода -->
+    <div class="promo-container">
+      <input type="text" id="promoInput" placeholder="Введите промокод">
+      <button onclick="checkPromo()">Ввести</button>
+    </div>
+    <button onclick="closeCreatorModal()">Закрыть</button>
   </div>
 
   <div class="modal" id="dailyTaskModal"></div>
@@ -435,8 +477,18 @@
     let totalPlayTime = parseInt(localStorage.getItem("totalPlayTime")) || 0; // в секундах
     let sessionStart = Date.now(); // время начала текущей сессии
 
+    // Переменные для бустера "Ускорение"
+    let boosterActive = false;
+    let boosterCooldown = 1800; // 30 минут в секундах
+    let boosterDuration = 30;   // 30 секунд действия
+    let boosterCost = 10000;
+    let lastBoosterTime = parseInt(localStorage.getItem("lastBoosterTime")) || 0;
+
     updateCoins();
     updateLevelDisplay();
+    updateUpgradeButtons();
+    // Обновление кнопок каждую секунду для обновления статуса бустера
+    setInterval(updateUpgradeButtons, 1000);
 
     function updateCoins() {
       document.getElementById("coins").textContent = formatNumber(Math.floor(coins));
@@ -664,8 +716,10 @@
       updateTimer();
     }
 
+    // Изменённое событие клика по ананасу с учетом бустера
     document.getElementById("pineapple").addEventListener("click", function(event) {
-      coins += clickValue;
+      let multiplier = boosterActive ? 2 : 1;
+      coins += clickValue * multiplier;
       updateCoins();
       updateDailyTask("clicks", 1);
       this.style.transition = "transform 0.2s ease";
@@ -841,13 +895,31 @@
         updateUpgradeButtons();
       } else { showMessage("Не хватает монет для улучшения клика!"); }
     }
+    // Функция обновления кнопок улучшений, включая кнопку бустера "Ускорение"
     function updateUpgradeButtons() {
       let passiveBtn = document.getElementById("passiveUpgradeBtn");
       let clickBtn = document.getElementById("clickUpgradeBtn");
+      let boosterBtn = document.getElementById("boosterUpgradeBtn");
       let passiveCost = 50 * (passiveLevel + 1);
       let clickCost = 50 * (clickUpgradeLevel + 1);
       passiveBtn.innerHTML = `Улучшить пассивный доход (Уровень: ${passiveLevel}, Цена: ${formatNumber(passiveCost)} <img src="assets/Сoin.png" alt="Монета" style="width:16px; height:16px; vertical-align:middle;">)`;
       clickBtn.innerHTML = `Улучшить клик (Уровень: ${clickUpgradeLevel}, Цена: ${formatNumber(clickCost)} <img src="assets/Сoin.png" alt="Монета" style="width:16px; height:16px; vertical-align:middle;">)`;
+
+      // Логика для кнопки бустера "Ускорение"
+      if(level < 5) {
+        boosterBtn.textContent = "Ускорение (доступно с 5 уровня)";
+        boosterBtn.disabled = false;
+      } else {
+        let now = Date.now();
+        if(now - lastBoosterTime < boosterCooldown * 1000) {
+          let remaining = Math.ceil((boosterCooldown * 1000 - (now - lastBoosterTime))/1000);
+          boosterBtn.textContent = `Ускорение (Осталось: ${remaining} сек)`;
+          boosterBtn.disabled = true;
+        } else {
+          boosterBtn.textContent = `Ускорение (Стоимость: ${formatNumber(boosterCost)})`;
+          boosterBtn.disabled = false;
+        }
+      }
     }
     function showMessage(msg) {
       let modal = document.getElementById("messageModal");
@@ -856,17 +928,30 @@
       modal.style.display = "block";
     }
     function closeMessage() { document.getElementById("messageModal").style.display = "none"; }
+    // Обновлённая функция "Об авторе" с промокодом
     function showCreatorInfo() {
-      let modal = document.getElementById("messageModal");
-      modal.innerHTML = `<h3>Об авторе</h3>
-                         <p>Создатель игры: ананасик версия 1.0</p>
-                         <div style="margin-top:10px;">
-                           <a href="https://www.youtube.com/@AnanasicChickenGun" target="_blank">
-                             <img src="assets/youtube.png" alt="YouTube" style="width:50px; height:50px;">
-                           </a>
-                         </div>
-                         <button onclick="closeMessage()">Закрыть</button>`;
-      modal.style.display = "block";
+      document.getElementById("creatorModal").style.display = "block";
+    }
+    function closeCreatorModal() {
+      document.getElementById("creatorModal").style.display = "none";
+    }
+    // Функция проверки промокода
+    function checkPromo() {
+      const promoInput = document.getElementById("promoInput").value.trim();
+      const PROMO_CODE = "ONE-MILLION";
+      if(localStorage.getItem("promoOneMillion") === "true") {
+        showMessage("Вы уже вводили этот промокод.");
+        return;
+      }
+      if(promoInput === PROMO_CODE) {
+        coins += 1000000;
+        localStorage.setItem("coins", coins);
+        localStorage.setItem("promoOneMillion", "true");
+        updateCoins();
+        showMessage("Поздравляем! Вы получили 1.000.000 монет.");
+      } else {
+        showMessage("Неверный промокод.");
+      }
     }
     function openSettingsModal() { updateMusicStatus(); document.getElementById("settingsModal").style.display = "block"; }
     function closeSettingsModal() { document.getElementById("settingsModal").style.display = "none"; }
@@ -988,6 +1073,38 @@
       localStorage.setItem("lastTime", Date.now());
     }
     function closeOfflineModal() { document.getElementById("offlineModal").style.display = "none"; }
+
+    // Функция активации бустера "Ускорение"
+    function activateBooster() {
+      if(level < 5) {
+        showMessage("Достигните 5 уровня, чтобы купить улучшение \"Ускорение\".");
+        return;
+      }
+      let now = Date.now();
+      if(now - lastBoosterTime < boosterCooldown * 1000) {
+        let remaining = Math.ceil((boosterCooldown * 1000 - (now - lastBoosterTime)) / 1000);
+        showMessage(`Бустер можно использовать через ${remaining} секунд.`);
+        return;
+      }
+      if(coins < boosterCost) {
+        showMessage("Не хватает монет для покупки ускорения!");
+        return;
+      }
+      coins -= boosterCost;
+      updateCoins();
+      boosterActive = true;
+      lastBoosterTime = now;
+      localStorage.setItem("lastBoosterTime", lastBoosterTime);
+      // Добавляем визуальный эффект: фон начинает блестеть
+      document.getElementById("gameContainer").classList.add("booster-active");
+      showMessage("Бустер активирован на 30 секунд!");
+      updateUpgradeButtons();
+      setTimeout(() => {
+        boosterActive = false;
+        document.getElementById("gameContainer").classList.remove("booster-active");
+        updateUpgradeButtons();
+      }, boosterDuration * 1000);
+    }
   </script>
 </body>
 </html>
