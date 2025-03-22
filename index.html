@@ -211,13 +211,12 @@
       transform: scale(1.05);
     }
     /* Стили для скинов */
-.shop-skin {
-  width: 80px !important;
-  height: auto !important;
-  object-fit: contain;
-  border-radius: 10px;
-}
-
+    .shop-skin {
+      width: 80px !important;
+      height: auto !important;
+      object-fit: contain;
+      border-radius: 10px;
+    }
     .info-icon {
       width: 20px;
       height: 20px;
@@ -421,11 +420,9 @@
     let ownedBackgrounds = JSON.parse(localStorage.getItem("ownedBackgrounds")) || ["assets/Fon.png"];
     let selectedBackground = localStorage.getItem("selectedBackground") || "assets/Fon.png";
 
-    // Если данные по скинам отсутствуют, задаём значения по умолчанию
     let ownedSkins = JSON.parse(localStorage.getItem("ownedSkins")) || ["assets/PineApple.png"];
     let selectedSkin = localStorage.getItem("selectedSkin") || "assets/PineApple.png";
 
-    // Новые переменные для уровней
     let level = parseInt(localStorage.getItem("level")) || 1;
     let dailyLevelUpClaimed = localStorage.getItem("dailyLevelUpClaimed");
     if(dailyLevelUpClaimed === null) {
@@ -451,13 +448,12 @@
       updateLevelProgress();
     }
 
-    // Изменённая функция обновления шкалы уровня:
-    // Если dailyLevelUpClaimed = true, шкала становится пустой и серой, иначе – заполняется зелёным по прогрессу заданий
+    // Обновление шкалы уровня: если dailyLevelUpClaimed=true – шкала пустая (серая), иначе заполняется зелёным
     function updateLevelProgress() {
       const levelProgress = document.getElementById("levelProgress");
       if (dailyLevelUpClaimed) {
         levelProgress.style.width = "0%";
-        levelProgress.style.background = "#aaa"; // серый цвет
+        levelProgress.style.background = "#aaa";
       } else {
         let tasks = getDailyTasks();
         let claimedCount = tasks.filter(task => task.claimed).length;
@@ -510,7 +506,6 @@
     }, { once: true });
 
     window.addEventListener("load", function() {
-      // Настройка интерфейса
       document.getElementById("gameContainer").style.backgroundImage = `url('${selectedBackground}')`;
       document.getElementById("pineapple").src = selectedSkin;
       updateUpgradeButtons();
@@ -519,7 +514,6 @@
       document.getElementById("volumeValue").textContent = `${volumeSlider.value}%`;
       updateLevelDisplay();
 
-      // Проверка оффлайн дохода
       const lastTime = localStorage.getItem("lastTime");
       if (lastTime) {
         const timeDifference = Date.now() - parseInt(lastTime);
@@ -548,7 +542,18 @@
     setInterval(() => { localStorage.setItem("lastTime", Date.now()); }, 60000);
     setInterval(() => { updateDailyTask("playTime", 1); updateLevelProgress(); }, 1000);
 
-    // Сброс ежедневных заданий через 24 часа с момента последнего сброса
+    // Обновление общего времени игры при сворачивании/скрытии страницы (важно для Telegram Apps)
+    document.addEventListener("visibilitychange", function() {
+      if (document.hidden) {
+        let sessionTime = Math.floor((Date.now() - sessionStart) / 1000);
+        totalPlayTime += sessionTime;
+        localStorage.setItem("totalPlayTime", totalPlayTime);
+      } else {
+        sessionStart = Date.now();
+      }
+    });
+
+    // Сброс ежедневных заданий через 24 часа
     function resetDailyTasksIfNeeded() {
       let now = Date.now();
       let lastResetTime = localStorage.getItem("lastDailyResetTime");
@@ -608,11 +613,9 @@
         }
         html += `</div>`;
       });
-      // Если все задания выполнены и награда за уровень еще не получена, показываем кнопку
       if (tasks.every(task => task.claimed) && !dailyLevelUpClaimed) {
         html += `<button id="levelUpBtn" onclick="levelUp()">Получить уровень (+100к монет)</button>`;
       }
-      // Добавляем таймер до сброса заданий
       html += `<p id="dailyResetTimer"></p>`;
       html += `<button onclick="closeDailyTaskMenu()">Закрыть</button>`;
       document.getElementById("dailyTaskModal").innerHTML = html;
@@ -622,12 +625,10 @@
     function closeDailyTaskMenu() {
       document.getElementById("dailyTaskModal").style.display = "none";
     }
-    // Функция получения уровня – изменения: не сбрасываем ежедневные задания
     function levelUp() {
       if (dailyLevelUpClaimed) return;
       let btn = document.getElementById("levelUpBtn");
       if (btn) { btn.disabled = true; }
-      // Анимация: временно делаем прогресс-бар полным, затем обновляем уровень и сбрасываем его в пустой (серый) вид
       document.getElementById("levelProgress").style.width = "100%";
       setTimeout(() => {
         level++;
@@ -641,7 +642,6 @@
         closeDailyTaskMenu();
       }, 500);
     }
-    // Таймер до сброса заданий (24 часа от времени последнего сброса)
     function startDailyResetTimer() {
       let now = Date.now();
       let lastResetTime = localStorage.getItem("lastDailyResetTime") || now;
@@ -889,7 +889,7 @@
       document.getElementById("volumeValue").textContent = `${this.value}%`;
     });
 
-    // Экспорт и импорт прогресса с шифрованием и проверкой секретного ключа
+    // Экспорт и импорт прогресса с шифрованием
     const SECRET_KEY = "mySuperSecretKey123";
     function exportProgress() {
       const progress = {
@@ -913,14 +913,20 @@
       const encrypted = CryptoJS.AES.encrypt(dataStr, SECRET_KEY).toString();
       const blob = new Blob([encrypted], { type: "text/plain" });
       const url = URL.createObjectURL(blob);
-      const a = document.createElement("a");
-      a.href = url;
-      a.download = "progress.json";
-      document.body.appendChild(a);
-      a.click();
-      document.body.removeChild(a);
-      URL.revokeObjectURL(url);
-      alert("Прогресс сохранен! Ваш текущий счет: " + formatNumber(coins) + " монет.");
+      // Для мобильных устройств вместо автоматического скачивания выводим ссылку
+      if (/iPhone|iPad|iPod|Android/i.test(navigator.userAgent)) {
+        showMessage(`Нажмите и удерживайте ссылку, чтобы скачать файл:<br>
+                     <a href="${url}" download="progress.json">Скачать прогресс</a>`);
+      } else {
+        const a = document.createElement("a");
+        a.href = url;
+        a.download = "progress.json";
+        document.body.appendChild(a);
+        a.click();
+        document.body.removeChild(a);
+        URL.revokeObjectURL(url);
+        alert("Прогресс сохранен! Ваш текущий счет: " + formatNumber(coins) + " монет.");
+      }
     }
     function importProgress(event) {
       const file = event.target.files[0];
